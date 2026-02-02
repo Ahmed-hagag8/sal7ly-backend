@@ -20,6 +20,7 @@ return new class extends Migration {
 
             $table->decimal('balance', 12, 2)->default(0);
             $table->decimal('pending_balance', 12, 2)->default(0);
+            $table->decimal('total_earned', 12, 2)->default(0);
             $table->decimal('total_withdrawn', 12, 2)->default(0);
 
             $table->timestamps();
