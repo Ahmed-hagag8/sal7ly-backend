@@ -1,19 +1,35 @@
 <?php
-
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-
+use App\Http\Controllers\v1\Auth\AuthController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
 |
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
+| All routes here are prefixed with /api automatically
+| Example: Route::get('/test') becomes GET /api/test
 |
 */
+// ==========================================
+// PUBLIC ROUTES (no authentication needed)
+// ==========================================
+Route::post('/login', [AuthController::class, 'login']);
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+Route::get('/health', function () {
+    return response()->json([
+        'success' => true,
+        'message' => 'Sal7ly API is running!',
+        'timestamp' => now()->toISOString(),
+    ]);
+});
+// ==========================================
+// PROTECTED ROUTES (authentication required)
+// ==========================================
+Route::middleware('auth:sanctum')->group(function () {
+
+
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/me', [AuthController::class, 'me']);
+
+
 });
