@@ -5,6 +5,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use App\Http\Controllers\v1\Shared\ProfileController;
 
 class AuthController extends Controller
 {
@@ -78,18 +79,8 @@ class AuthController extends Controller
      */
     public function me(Request $request)
     {
-        $user = $request->user();
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'user' => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'phone' => $user->phone,
-                    'role' => $user->role,
-                ],
-            ],
-        ]);
+
+        return app(ProfileController::class)->show($request);
+
     }
 }
