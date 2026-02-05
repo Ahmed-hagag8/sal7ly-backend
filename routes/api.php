@@ -5,6 +5,7 @@ use App\Http\Controllers\v1\Auth\AuthController;
 use App\Http\Controllers\v1\Auth\RegisterController;
 use App\Http\Controllers\v1\Shared\ProfileController;
 use App\Http\Controllers\v1\Shared\ServiceCategoryController;
+use App\Http\Controllers\v1\Technician\DocumentController;
 
 
 // PUBLIC ROUTES (no authentication needed)
@@ -53,3 +54,10 @@ Route::get('/categories', [ServiceCategoryController::class, 'index']);
 Route::get('/categories/{id}', [ServiceCategoryController::class, 'show']);
 Route::get('/categories/{id}/services', [ServiceCategoryController::class, 'services']);
 Route::get('/services', [ServiceCategoryController::class, 'allServices']);
+
+// Technician routes (authenticated technicians)
+Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->group(function () {
+    Route::get('/documents', [DocumentController::class, 'index']);
+    Route::post('/documents', [DocumentController::class, 'store']);
+    Route::delete('/documents/{id}', [DocumentController::class, 'destroy']);
+});

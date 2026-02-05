@@ -60,4 +60,9 @@ class Technician extends Model
     {
         return $this->verification_status === 'approved';
     }
+    public function documents()
+    {
+        return $this->hasMany(TechnicianDocument::class);
+    }
+
 }
