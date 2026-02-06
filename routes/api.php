@@ -6,6 +6,7 @@ use App\Http\Controllers\v1\Auth\RegisterController;
 use App\Http\Controllers\v1\Shared\ProfileController;
 use App\Http\Controllers\v1\Shared\ServiceCategoryController;
 use App\Http\Controllers\v1\Technician\DocumentController;
+use App\Http\Controllers\v1\Admin\TechnicianController as AdminTechnicianController;
 
 
 // PUBLIC ROUTES (no authentication needed)
@@ -36,9 +37,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profile/image', [ProfileController::class, 'uploadImage']);
 });
 
-// Admin only routes (Day 22-24)
+// Admin routes
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
-    // Admin dashboard routes here
+    // Technician verification
+    Route::get('/technicians', [AdminTechnicianController::class, 'index']);
+    Route::get('/technicians/{id}', [AdminTechnicianController::class, 'show']);
+    Route::post('/technicians/{id}/approve', [AdminTechnicianController::class, 'approve']);
+    Route::post('/technicians/{id}/reject', [AdminTechnicianController::class, 'reject']);
+    
+    // Document verification
+    Route::post('/documents/{id}/approve', [AdminTechnicianController::class, 'approveDocument']);
+    Route::post('/documents/{id}/reject', [AdminTechnicianController::class, 'rejectDocument']);
 });
 // Customer only routes
 Route::middleware(['auth:sanctum', 'role:customer'])->prefix('customer')->group(function () {
