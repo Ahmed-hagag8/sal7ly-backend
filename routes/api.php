@@ -7,6 +7,7 @@ use App\Http\Controllers\v1\Shared\ProfileController;
 use App\Http\Controllers\v1\Shared\ServiceCategoryController;
 use App\Http\Controllers\v1\Technician\DocumentController;
 use App\Http\Controllers\v1\Admin\TechnicianController as AdminTechnicianController;
+use App\Http\Controllers\v1\Customer\ServiceRequestController;
 
 
 // PUBLIC ROUTES (no authentication needed)
@@ -69,4 +70,11 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
     Route::get('/documents', [DocumentController::class, 'index']);
     Route::post('/documents', [DocumentController::class, 'store']);
     Route::delete('/documents/{id}', [DocumentController::class, 'destroy']);
+});
+
+// Customer routes
+Route::middleware(['auth:sanctum', 'role:customer'])->prefix('customer')->group(function () {
+    Route::post('/requests', [ServiceRequestController::class, 'store']);
+    Route::get('/requests/{id}', [ServiceRequestController::class, 'show']);
+    Route::post('/requests/{id}/cancel', [ServiceRequestController::class, 'cancel']);
 });
