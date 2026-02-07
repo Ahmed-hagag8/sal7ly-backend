@@ -10,6 +10,7 @@ use App\Http\Controllers\v1\Admin\TechnicianController as AdminTechnicianControl
 use App\Http\Controllers\v1\Customer\ServiceRequestController;
 use App\Http\Controllers\v1\Technician\ServiceRequestController as TechnicianRequestController;
 use App\Http\Controllers\v1\Technician\OfferController;
+use App\Http\Controllers\v1\Shared\WalletController;
 
 
 // PUBLIC ROUTES 
@@ -36,11 +37,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
-
-
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
     Route::post('/profile/image', [ProfileController::class, 'uploadImage']);
+    Route::get('/wallet', [WalletController::class, 'show']);
+    Route::get('/wallet/transactions', [WalletController::class, 'transactions']);
 });
 
 // Admin routes
@@ -50,7 +51,6 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::get('/technicians/{id}', [AdminTechnicianController::class, 'show']);
     Route::post('/technicians/{id}/approve', [AdminTechnicianController::class, 'approve']);
     Route::post('/technicians/{id}/reject', [AdminTechnicianController::class, 'reject']);
-
     // Document verification
     Route::post('/documents/{id}/approve', [AdminTechnicianController::class, 'approveDocument']);
     Route::post('/documents/{id}/reject', [AdminTechnicianController::class, 'rejectDocument']);
