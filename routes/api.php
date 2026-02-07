@@ -13,6 +13,7 @@ use App\Http\Controllers\v1\Technician\OfferController;
 use App\Http\Controllers\v1\Shared\WalletController;
 use App\Http\Controllers\v1\Customer\PaymentController;
 use App\Http\Controllers\v1\Technician\WithdrawalController;
+use App\Http\Controllers\v1\Technician\JobController;
 
 
 // PUBLIC ROUTES 
@@ -73,6 +74,9 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
     Route::delete('/offers/{id}', [OfferController::class, 'destroy']);
     Route::get('/withdrawals', [WithdrawalController::class, 'index']);
     Route::post('/withdrawals', [WithdrawalController::class, 'store']);
+    Route::get('/jobs', [JobController::class, 'index']);
+    Route::post('/jobs/{id}/start', [JobController::class, 'start']);
+    Route::post('/jobs/{id}/complete', [JobController::class, 'complete']);
 });
 
 // Customer routes
@@ -84,4 +88,5 @@ Route::middleware(['auth:sanctum', 'role:customer'])->prefix('customer')->group(
     Route::get('/requests/{id}/offers', [ServiceRequestController::class, 'offers']);
     Route::post('/requests/{requestId}/offers/{offerId}/accept', [ServiceRequestController::class, 'acceptOffer']);
     Route::post('/jobs/{id}/pay', [PaymentController::class, 'pay']);
+    Route::get('/jobs', [ServiceRequestController::class, 'jobs']);
 });

@@ -11,7 +11,7 @@ class WalletService
     /**
      * Add funds to wallet (earnings)
      */
-    public function credit(Wallet $wallet, float $amount, string $type, string $description, ?string $referenceType = null, ?int $referenceId = null): Transaction
+    public function credit(Wallet $wallet, float $amount, string $description, ?string $referenceType = null, ?int $referenceId = null): Transaction
     {
         $balanceBefore = $wallet->balance;
         $balanceAfter = $balanceBefore + $amount;
@@ -19,7 +19,7 @@ class WalletService
         $transaction = Transaction::create([
             'transaction_number' => 'TXN-' . strtoupper(Str::random(10)),
             'wallet_id' => $wallet->id,
-            'type' => $type,
+            'type' => 'credit',
             'amount' => $amount,
             'balance_before' => $balanceBefore,
             'balance_after' => $balanceAfter,
@@ -40,7 +40,7 @@ class WalletService
     /**
      * Deduct funds from wallet (withdrawal)
      */
-    public function debit(Wallet $wallet, float $amount, string $type, string $description, ?string $referenceType = null, ?int $referenceId = null): Transaction
+    public function debit(Wallet $wallet, float $amount, string $description, ?string $referenceType = null, ?int $referenceId = null): Transaction
     {
         if ($wallet->balance < $amount) {
             throw new \Exception('Insufficient balance');
@@ -52,7 +52,7 @@ class WalletService
         $transaction = Transaction::create([
             'transaction_number' => 'TXN-' . strtoupper(Str::random(10)),
             'wallet_id' => $wallet->id,
-            'type' => $type,
+            'type' => 'debit',
             'amount' => $amount,
             'balance_before' => $balanceBefore,
             'balance_after' => $balanceAfter,

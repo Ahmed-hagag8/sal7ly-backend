@@ -250,5 +250,30 @@ class ServiceRequestController extends Controller
         ]);
     }
 
+    /**
+     * List customer's jobs
+     */
+    public function jobs(Request $request)
+    {
+        $customer = $request->user()->customer;
+        $jobs = \App\Models\Job::with(['serviceRequest.service', 'technician.user'])
+            ->where('customer_id', $customer->id)
+            ->latest()
+            ->paginate(10);
+        return response()->json([
+            'success' => true,
+            'data' => collect($jobs->items())->map(fn($job) => [
+                'id' => $job->id,
+                'job_number' => $job->job_number,
+                'service' => $job->serviceRequest->service->name,
+                'technician_name' => $job->technician->user->name,
+                'agreed_price' => $job->agreed_price,
+                'final_price' => $job->final_price,
+                'status' => $job->status,
+                'is_paid' => $job->payment()->exists(),
+            ]),
+        ]);
+    }
+
 
 }

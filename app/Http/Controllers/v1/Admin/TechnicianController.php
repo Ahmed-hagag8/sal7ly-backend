@@ -197,7 +197,6 @@ class TechnicianController extends Controller
             app(\App\Services\WalletService::class)->debit(
                 $wallet,
                 (float) $withdrawal->amount,
-                'debit',
                 "Withdrawal #{$withdrawal->withdrawal_number}"
             );
             $withdrawal->update([

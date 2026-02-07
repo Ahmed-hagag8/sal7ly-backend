@@ -44,7 +44,6 @@ class PaymentService
         $this->walletService->credit(
             $technician->user->wallet,
             $technicianEarnings,
-            'earning',
             "Payment for Job #{$job->job_number}",
             'payment',
             $payment->id
