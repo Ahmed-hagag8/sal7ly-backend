@@ -12,6 +12,7 @@ use App\Http\Controllers\v1\Technician\ServiceRequestController as TechnicianReq
 use App\Http\Controllers\v1\Technician\OfferController;
 use App\Http\Controllers\v1\Shared\WalletController;
 use App\Http\Controllers\v1\Customer\PaymentController;
+use App\Http\Controllers\v1\Technician\WithdrawalController;
 
 
 // PUBLIC ROUTES 
@@ -55,6 +56,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     // Document verification
     Route::post('/documents/{id}/approve', [AdminTechnicianController::class, 'approveDocument']);
     Route::post('/documents/{id}/reject', [AdminTechnicianController::class, 'rejectDocument']);
+    Route::post('/withdrawals/{id}/process', [AdminTechnicianController::class, 'processWithdrawal']);
 });
 
 
@@ -69,6 +71,8 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
     Route::get('/offers', [OfferController::class, 'index']);
     Route::post('/requests/{id}/offer', [OfferController::class, 'store']);
     Route::delete('/offers/{id}', [OfferController::class, 'destroy']);
+    Route::get('/withdrawals', [WithdrawalController::class, 'index']);
+    Route::post('/withdrawals', [WithdrawalController::class, 'store']);
 });
 
 // Customer routes

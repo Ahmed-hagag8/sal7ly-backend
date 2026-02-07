@@ -174,4 +174,47 @@ class TechnicianController extends Controller
             'message' => 'Document rejected',
         ]);
     }
+
+    /**
+     * Process withdrawal request
+     */
+    public function processWithdrawal(Request $request, $id)
+    {
+        $request->validate([
+            'action' => 'required|in:approve,reject',
+            'reason' => 'required_if:action,reject|string',
+        ]);
+        $withdrawal = \App\Models\Withdrawal::findOrFail($id);
+        if ($withdrawal->status !== 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Withdrawal already processed',
+            ], 400);
+        }
+        if ($request->action === 'approve') {
+            $wallet = $withdrawal->user->wallet;
+
+            app(\App\Services\WalletService::class)->debit(
+                $wallet,
+                (float) $withdrawal->amount,
+                'debit',
+                "Withdrawal #{$withdrawal->withdrawal_number}"
+            );
+            $withdrawal->update([
+                'status' => 'approved',
+                'processed_by' => $request->user()->id,
+                'processed_at' => now(),
+            ]);
+        } else {
+            $withdrawal->update([
+                'status' => 'rejected',
+                'processed_by' => $request->user()->id,
+                'processed_at' => now(),
+            ]);
+        }
+        return response()->json([
+            'success' => true,
+            'message' => 'Withdrawal ' . $request->action . 'd',
+        ]);
+    }
 }
