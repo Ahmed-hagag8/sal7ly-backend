@@ -9,6 +9,7 @@ use App\Http\Controllers\v1\Technician\DocumentController;
 use App\Http\Controllers\v1\Admin\TechnicianController as AdminTechnicianController;
 use App\Http\Controllers\v1\Customer\ServiceRequestController;
 use App\Http\Controllers\v1\Technician\ServiceRequestController as TechnicianRequestController;
+use App\Http\Controllers\v1\Technician\OfferController;
 
 
 // PUBLIC ROUTES 
@@ -32,11 +33,11 @@ Route::get('/health', function () {
 // PROTECTED ROUTES (authentication required)
 
 Route::middleware('auth:sanctum')->group(function () {
-    
+
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
 
-    
+
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
     Route::post('/profile/image', [ProfileController::class, 'uploadImage']);
@@ -64,6 +65,9 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
     Route::delete('/documents/{id}', [DocumentController::class, 'destroy']);
     Route::get('/requests', [TechnicianRequestController::class, 'index']);
     Route::get('/requests/{id}', [TechnicianRequestController::class, 'show']);
+    Route::get('/offers', [OfferController::class, 'index']);
+    Route::post('/requests/{id}/offer', [OfferController::class, 'store']);
+    Route::delete('/offers/{id}', [OfferController::class, 'destroy']);
 });
 
 // Customer routes
@@ -72,4 +76,6 @@ Route::middleware(['auth:sanctum', 'role:customer'])->prefix('customer')->group(
     Route::get('/requests/{id}', [ServiceRequestController::class, 'show']);
     Route::post('/requests/{id}/cancel', [ServiceRequestController::class, 'cancel']);
     Route::get('/requests', [ServiceRequestController::class, 'index']);
+    Route::get('/requests/{id}/offers', [ServiceRequestController::class, 'offers']);
+    Route::post('/requests/{requestId}/offers/{offerId}/accept', [ServiceRequestController::class, 'acceptOffer']);
 });

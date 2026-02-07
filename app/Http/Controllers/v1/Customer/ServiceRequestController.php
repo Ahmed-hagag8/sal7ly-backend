@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\v1\Customer\CreateServiceRequestRequest;
 use App\Models\ServiceImage;
 use App\Models\ServiceRequest;
+use App\Models\JobOffer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -180,5 +181,74 @@ class ServiceRequestController extends Controller
             ],
         ]);
     }
+
+
+    /**
+     * List offers on a request
+     */
+    public function offers(Request $request, $id)
+    {
+        $customer = $request->user()->customer;
+        $serviceRequest = ServiceRequest::where('customer_id', $customer->id)
+            ->findOrFail($id);
+        $offers = $serviceRequest->offers()
+            ->with(['technician.user', 'technician.category'])
+            ->where('status', 'pending')
+            ->get();
+        return response()->json([
+            'success' => true,
+            'data' => $offers->map(fn($offer) => [
+                'id' => $offer->id,
+                'technician' => [
+                    'id' => $offer->technician->id,
+                    'name' => $offer->technician->user->name,
+                    'rating' => $offer->technician->average_rating,
+                    'jobs_completed' => $offer->technician->total_jobs_completed,
+                ],
+                'offered_price' => $offer->offered_price,
+                'estimated_duration' => $offer->estimated_duration,
+                'notes' => $offer->notes,
+                'created_at' => $offer->created_at,
+            ]),
+        ]);
+    }
+    /**
+     * Accept an offer - creates a Job
+     */
+    public function acceptOffer(Request $request, $requestId, $offerId)
+    {
+        $customer = $request->user()->customer;
+        $serviceRequest = ServiceRequest::where('customer_id', $customer->id)
+            ->findOrFail($requestId);
+        $offer = JobOffer::where('service_request_id', $requestId)
+            ->where('id', $offerId)
+            ->where('status', 'pending')
+            ->firstOrFail();
+        \DB::transaction(function () use ($serviceRequest, $offer, $customer) {
+            // Accept this offer
+            $offer->update(['status' => 'accepted']);
+            // Reject other offers
+            JobOffer::where('service_request_id', $serviceRequest->id)
+                ->where('id', '!=', $offer->id)
+                ->update(['status' => 'rejected']);
+            // Update request status
+            $serviceRequest->update(['status' => 'assigned']);
+            // Create job
+            \App\Models\Job::create([
+                'job_number' => 'JOB-' . strtoupper(\Str::random(8)),
+                'service_request_id' => $serviceRequest->id,
+                'job_offer_id' => $offer->id,
+                'customer_id' => $customer->id,
+                'technician_id' => $offer->technician_id,
+                'agreed_price' => $offer->offered_price,
+                'status' => 'scheduled',
+            ]);
+        });
+        return response()->json([
+            'success' => true,
+            'message' => 'Offer accepted! Job created.',
+        ]);
+    }
+
 
 }
