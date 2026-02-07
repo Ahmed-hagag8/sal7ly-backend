@@ -143,4 +143,42 @@ class ServiceRequestController extends Controller
             'message' => 'Request cancelled successfully',
         ]);
     }
+
+    /**
+     * List customer's service requests
+     */
+    public function index(Request $request)
+    {
+        $customer = $request->user()->customer;
+
+        $query = ServiceRequest::with(['service', 'city'])
+            ->where('customer_id', $customer->id);
+
+        // Filter by status
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $requests = $query->latest()->paginate(10);
+
+        return response()->json([
+            'success' => true,
+            'data' => collect($requests->items())->map(fn($req) => [
+                'id' => $req->id,
+                'request_number' => $req->request_number,
+                'title' => $req->title,
+                'service' => $req->service->name,
+                'city' => $req->city->name,
+                'status' => $req->status,
+                'offers_count' => $req->offers()->count(),
+                'created_at' => $req->created_at,
+            ]),
+            'meta' => [
+                'current_page' => $requests->currentPage(),
+                'last_page' => $requests->lastPage(),
+                'total' => $requests->total(),
+            ],
+        ]);
+    }
+
 }
