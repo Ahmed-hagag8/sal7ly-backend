@@ -234,7 +234,7 @@ class ServiceRequestController extends Controller
             // Update request status
             $serviceRequest->update(['status' => 'assigned']);
             // Create job
-            \App\Models\Job::create([
+            $job = \App\Models\Job::create([
                 'job_number' => 'JOB-' . strtoupper(\Str::random(8)),
                 'service_request_id' => $serviceRequest->id,
                 'job_offer_id' => $offer->id,
@@ -242,6 +242,13 @@ class ServiceRequestController extends Controller
                 'technician_id' => $offer->technician_id,
                 'agreed_price' => $offer->offered_price,
                 'status' => 'scheduled',
+            ]);
+            // Create conversation for chat
+            \App\Models\Conversation::create([
+                'job_id' => $job->id,
+                'participant_1_id' => $customer->user_id,
+                'participant_2_id' => $offer->technician->user_id,
+                'last_message_at' => now(),
             ]);
         });
         return response()->json([

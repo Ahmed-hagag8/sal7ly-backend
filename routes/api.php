@@ -15,6 +15,7 @@ use App\Http\Controllers\v1\Customer\PaymentController;
 use App\Http\Controllers\v1\Technician\WithdrawalController;
 use App\Http\Controllers\v1\Technician\JobController;
 use App\Http\Controllers\v1\Customer\ReviewController;
+use App\Http\Controllers\v1\Shared\ChatController;
 
 
 // PUBLIC ROUTES 
@@ -46,6 +47,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profile/image', [ProfileController::class, 'uploadImage']);
     Route::get('/wallet', [WalletController::class, 'show']);
     Route::get('/wallet/transactions', [WalletController::class, 'transactions']);
+    Route::get('/conversations', [ChatController::class, 'index']);
+    Route::get('/conversations/{id}/messages', [ChatController::class, 'messages']);
+    Route::post('/conversations/{id}/messages', [ChatController::class, 'send']);
 });
 
 // Admin routes
