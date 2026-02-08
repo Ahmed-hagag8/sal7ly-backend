@@ -14,6 +14,7 @@ use App\Http\Controllers\v1\Shared\WalletController;
 use App\Http\Controllers\v1\Customer\PaymentController;
 use App\Http\Controllers\v1\Technician\WithdrawalController;
 use App\Http\Controllers\v1\Technician\JobController;
+use App\Http\Controllers\v1\Customer\ReviewController;
 
 
 // PUBLIC ROUTES 
@@ -89,4 +90,5 @@ Route::middleware(['auth:sanctum', 'role:customer'])->prefix('customer')->group(
     Route::post('/requests/{requestId}/offers/{offerId}/accept', [ServiceRequestController::class, 'acceptOffer']);
     Route::post('/jobs/{id}/pay', [PaymentController::class, 'pay']);
     Route::get('/jobs', [ServiceRequestController::class, 'jobs']);
+    Route::post('/jobs/{id}/review', [ReviewController::class, 'store']);
 });

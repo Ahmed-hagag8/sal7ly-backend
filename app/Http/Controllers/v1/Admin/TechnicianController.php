@@ -73,6 +73,8 @@ class TechnicianController extends Controller
                 'years_of_experience' => $technician->years_of_experience,
                 'verification_status' => $technician->verification_status,
                 'verified_at' => $technician->verified_at,
+                'average_rating' => $technician->average_rating,
+                'total_jobs_completed' => $technician->total_jobs_completed,
                 'documents' => $technician->documents->map(fn($doc) => [
                     'id' => $doc->id,
                     'type' => $doc->type,
