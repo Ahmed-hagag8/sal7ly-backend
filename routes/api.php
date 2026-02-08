@@ -16,6 +16,7 @@ use App\Http\Controllers\v1\Technician\WithdrawalController;
 use App\Http\Controllers\v1\Technician\JobController;
 use App\Http\Controllers\v1\Customer\ReviewController;
 use App\Http\Controllers\v1\Shared\ChatController;
+use App\Http\Controllers\v1\Shared\NotificationController;
 
 
 // PUBLIC ROUTES 
@@ -50,6 +51,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/conversations', [ChatController::class, 'index']);
     Route::get('/conversations/{id}/messages', [ChatController::class, 'messages']);
     Route::post('/conversations/{id}/messages', [ChatController::class, 'send']);
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
 });
 
 // Admin routes

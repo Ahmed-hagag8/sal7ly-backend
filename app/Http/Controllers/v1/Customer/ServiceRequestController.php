@@ -10,6 +10,7 @@ use App\Models\JobOffer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Services\NotificationService;
 
 class ServiceRequestController extends Controller
 {
@@ -250,6 +251,14 @@ class ServiceRequestController extends Controller
                 'participant_2_id' => $offer->technician->user_id,
                 'last_message_at' => now(),
             ]);
+
+            // Notify technician about accepted offer
+            NotificationService::send(
+                $offer->technician->user_id,
+                'offer_accepted',
+                'Offer Accepted!',
+                'Customer accepted your offer. Start the job!'
+            );
         });
         return response()->json([
             'success' => true,

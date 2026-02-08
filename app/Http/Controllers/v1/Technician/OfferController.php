@@ -5,6 +5,7 @@ namespace App\Http\Controllers\v1\Technician;
 use App\Http\Controllers\Controller;
 use App\Models\JobOffer;
 use App\Models\ServiceRequest;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class OfferController extends Controller
@@ -56,6 +57,14 @@ class OfferController extends Controller
         if ($serviceRequest->status === 'pending') {
             $serviceRequest->update(['status' => 'open']);
         }
+
+        // Notify customer about new offer
+        NotificationService::send(
+            $serviceRequest->customer->user_id,
+            'new_offer',
+            'New Offer!',
+            "Technician offered {$offer->offered_price} EGP for your request"
+        );
 
         return response()->json([
             'success' => true,
