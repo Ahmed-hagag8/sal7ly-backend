@@ -45,17 +45,19 @@ class WalletController extends Controller
             ->latest('created_at')
             ->paginate(15);
 
+        $transactions->setCollection($transactions->getCollection()->map(fn($t) => [
+            'id' => $t->id,
+            'transaction_number' => $t->transaction_number,
+            'type' => $t->type,
+            'amount' => $t->amount,
+            'balance_after' => $t->balance_after,
+            'description' => $t->description,
+            'created_at' => $t->created_at,
+        ]));
+
         return response()->json([
             'success' => true,
-            'data' => $transactions->through(fn($t) => [
-                'id' => $t->id,
-                'transaction_number' => $t->transaction_number,
-                'type' => $t->type,
-                'amount' => $t->amount,
-                'balance_after' => $t->balance_after,
-                'description' => $t->description,
-                'created_at' => $t->created_at,
-            ]),
+            'data' => $transactions,
         ]);
     }
 }

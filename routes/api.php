@@ -59,18 +59,20 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Admin routes
 Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
-    // Technician verification
     Route::get('/technicians', [AdminTechnicianController::class, 'index']);
     Route::get('/technicians/{id}', [AdminTechnicianController::class, 'show']);
     Route::post('/technicians/{id}/approve', [AdminTechnicianController::class, 'approve']);
     Route::post('/technicians/{id}/reject', [AdminTechnicianController::class, 'reject']);
-    // Document verification
     Route::post('/documents/{id}/approve', [AdminTechnicianController::class, 'approveDocument']);
     Route::post('/documents/{id}/reject', [AdminTechnicianController::class, 'rejectDocument']);
     Route::post('/withdrawals/{id}/process', [AdminTechnicianController::class, 'processWithdrawal']);
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
     Route::get('/dashboard/activity', [DashboardController::class, 'recentActivity']);
     Route::get('/users', [DashboardController::class, 'users']);
+    Route::get('/billing/transactions', [DashboardController::class, 'transactions']);
+    Route::get('/billing/withdrawals', [DashboardController::class, 'withdrawals']);
+    Route::get('/billing/wallet-overview', [DashboardController::class, 'walletOverview']);
+    Route::get('/billing/wallets', [DashboardController::class, 'wallets']);
 });
 
 

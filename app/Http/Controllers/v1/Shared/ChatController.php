@@ -23,14 +23,14 @@ class ChatController extends Controller
             ->latest('last_message_at')
             ->paginate(10);
 
-        $conversations = $conversations->through(fn($c) => [
+        $conversations->setCollection($conversations->getCollection()->map(fn($c) => [
             'id' => $c->id,
             'job_number' => $c->job?->job_number,
             'other_user' => $c->participant_1_id == $userId
                 ? $c->participant2->name
                 : $c->participant1->name,
             'last_message_at' => $c->last_message_at,
-        ]);
+        ]));
 
         return response()->json([
             'success' => true,
