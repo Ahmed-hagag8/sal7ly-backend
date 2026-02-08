@@ -181,5 +181,71 @@ class DashboardController extends Controller
         ]);
     }
 
+    /**
+     * Request statistics for charts
+     */
+    public function requestStats(Request $request)
+    {
+        $period = $request->period ?? 'month'; // week, month, year
 
+        $requests = ServiceRequest::selectRaw('DATE(created_at) as date, COUNT(*) as total')
+            ->when($period === 'week', fn($q) => $q->where('created_at', '>=', now()->subWeek()))
+            ->when($period === 'month', fn($q) => $q->where('created_at', '>=', now()->subMonth()))
+            ->when($period === 'year', fn($q) => $q->where('created_at', '>=', now()->subYear()))
+            ->groupBy('date')
+            ->get();
+        return response()->json([
+            'success' => true,
+            'data' => $requests,
+        ]);
+    }
+    /**
+     * Service type distribution (pie chart)
+     */
+    public function serviceDistribution()
+    {
+        $distribution = ServiceRequest::join('services', 'service_requests.service_id', '=', 'services.id')
+            ->selectRaw('services.name as service, COUNT(*) as count')
+            ->groupBy('services.name')
+            ->get();
+        return response()->json([
+            'success' => true,
+            'data' => $distribution,
+        ]);
+    }
+    /**
+     * Revenue breakdown by service
+     */
+    public function revenueByService()
+    {
+        $revenue = Payment::join('jobs', 'payments.job_id', '=', 'jobs.id')
+            ->join('service_requests', 'jobs.service_request_id', '=', 'service_requests.id')
+            ->join('services', 'service_requests.service_id', '=', 'services.id')
+            ->selectRaw('services.name as service, SUM(payments.amount) as total')
+            ->groupBy('services.name')
+            ->get();
+        return response()->json([
+            'success' => true,
+            'data' => $revenue,
+        ]);
+    }
+    /**
+     * Top performing technicians
+     */
+    public function topTechnicians()
+    {
+        $technicians = Technician::with('user:id,name')
+            ->orderByDesc('average_rating')
+            ->orderByDesc('total_jobs_completed')
+            ->take(10)
+            ->get(['id', 'user_id', 'average_rating', 'total_jobs_completed']);
+        return response()->json([
+            'success' => true,
+            'data' => $technicians->map(fn($t) => [
+                'name' => $t->user->name,
+                'rating' => $t->average_rating,
+                'requests' => $t->total_jobs_completed,
+            ]),
+        ]);
+    }
 }

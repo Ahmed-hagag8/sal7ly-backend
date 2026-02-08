@@ -73,6 +73,10 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::get('/billing/withdrawals', [DashboardController::class, 'withdrawals']);
     Route::get('/billing/wallet-overview', [DashboardController::class, 'walletOverview']);
     Route::get('/billing/wallets', [DashboardController::class, 'wallets']);
+    Route::get('/reports/requests', [DashboardController::class, 'requestStats']);
+    Route::get('/reports/services', [DashboardController::class, 'serviceDistribution']);
+    Route::get('/reports/revenue', [DashboardController::class, 'revenueByService']);
+    Route::get('/reports/top-technicians', [DashboardController::class, 'topTechnicians']);
 });
 
 
