@@ -17,6 +17,7 @@ use App\Http\Controllers\v1\Technician\JobController;
 use App\Http\Controllers\v1\Customer\ReviewController;
 use App\Http\Controllers\v1\Shared\ChatController;
 use App\Http\Controllers\v1\Shared\NotificationController;
+use App\Http\Controllers\v1\Admin\DashboardController;
 
 
 // PUBLIC ROUTES 
@@ -67,6 +68,9 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::post('/documents/{id}/approve', [AdminTechnicianController::class, 'approveDocument']);
     Route::post('/documents/{id}/reject', [AdminTechnicianController::class, 'rejectDocument']);
     Route::post('/withdrawals/{id}/process', [AdminTechnicianController::class, 'processWithdrawal']);
+    Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
+    Route::get('/dashboard/activity', [DashboardController::class, 'recentActivity']);
+    Route::get('/users', [DashboardController::class, 'users']);
 });
 
 
