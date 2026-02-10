@@ -18,6 +18,7 @@ use App\Http\Controllers\v1\Customer\ReviewController;
 use App\Http\Controllers\v1\Shared\ChatController;
 use App\Http\Controllers\v1\Shared\NotificationController;
 use App\Http\Controllers\v1\Admin\DashboardController;
+use App\Http\Controllers\v1\AIController;
 
 
 // PUBLIC ROUTES 
@@ -55,6 +56,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+    Route::post('/ai/predict-price', [AIController::class, 'predictPrice']);
+    Route::post('/ai/detect-image', [AIController::class, 'detectImage']);
+    Route::post('/ai/chat', [AIController::class, 'chat']);
 });
 
 // Admin routes
