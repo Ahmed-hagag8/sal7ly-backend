@@ -81,6 +81,9 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::get('/reports/services', [DashboardController::class, 'serviceDistribution']);
     Route::get('/reports/revenue', [DashboardController::class, 'revenueByService']);
     Route::get('/reports/top-technicians', [DashboardController::class, 'topTechnicians']);
+    Route::get('/reports/satisfaction', [DashboardController::class, 'customerSatisfaction']);
+    Route::get('/reports/requests-breakdown', [DashboardController::class, 'requestsBreakdown']);
+    Route::get('/reports/service-utilization', [DashboardController::class, 'serviceUtilization']);
 });
 
 

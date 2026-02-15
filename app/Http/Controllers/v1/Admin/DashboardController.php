@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\v1\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\{User, Technician, Customer, Job, ServiceRequest, Payment, Withdrawal};
+use App\Models\{User, Technician, Customer, Job, ServiceRequest, Payment, Withdrawal, Review};
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -13,9 +14,49 @@ class DashboardController extends Controller
      */
     public function stats()
     {
+        // Overview cards
+        $totalRequestsThisMonth = ServiceRequest::whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)->count();
+        $totalRequestsLastMonth = ServiceRequest::whereMonth('created_at', now()->subMonth()->month)
+            ->whereYear('created_at', now()->subMonth()->year)->count();
+        $requestsGrowth = $totalRequestsLastMonth > 0
+            ? round((($totalRequestsThisMonth - $totalRequestsLastMonth) / $totalRequestsLastMonth) * 100, 1)
+            : 0;
+
+        $newCustomers = Customer::whereMonth('created_at', now()->month)->count();
+        $newCustomersLastMonth = Customer::whereMonth('created_at', now()->subMonth()->month)->count();
+        $customersGrowth = $newCustomersLastMonth > 0
+            ? round((($newCustomers - $newCustomersLastMonth) / $newCustomersLastMonth) * 100, 1)
+            : 0;
+
+        $activeTechniciansToday = Job::whereDate('updated_at', today())
+            ->whereIn('status', ['in_progress', 'completed'])
+            ->distinct('technician_id')->count('technician_id');
+
+        $cancelledThisMonth = ServiceRequest::whereMonth('created_at', now()->month)
+            ->where('status', 'cancelled')->count();
+        $cancellationRate = $totalRequestsThisMonth > 0
+            ? round(($cancelledThisMonth / $totalRequestsThisMonth) * 100, 1)
+            : 0;
+        $cancelledLastMonth = ServiceRequest::whereMonth('created_at', now()->subMonth()->month)
+            ->where('status', 'cancelled')->count();
+        $cancellationRateLastMonth = $totalRequestsLastMonth > 0
+            ? round(($cancelledLastMonth / $totalRequestsLastMonth) * 100, 1)
+            : 0;
+        $cancellationChange = round($cancellationRate - $cancellationRateLastMonth, 1);
+
         return response()->json([
             'success' => true,
             'data' => [
+                'overview' => [
+                    'total_requests_this_month' => $totalRequestsThisMonth,
+                    'requests_growth' => $requestsGrowth,
+                    'new_customers' => $newCustomers,
+                    'customers_growth' => $customersGrowth,
+                    'active_technicians_today' => $activeTechniciansToday,
+                    'cancellation_rate' => $cancellationRate,
+                    'cancellation_change' => $cancellationChange,
+                ],
                 'users' => [
                     'total' => User::count(),
                     'customers' => Customer::count(),
@@ -245,6 +286,77 @@ class DashboardController extends Controller
                 'name' => $t->user->name,
                 'rating' => $t->average_rating,
                 'requests' => $t->total_jobs_completed,
+            ]),
+        ]);
+    }
+
+    /**
+     * Customer satisfaction level (average rating %)
+     */
+    public function customerSatisfaction()
+    {
+        $avgRating = Review::avg('rating') ?? 0;
+        $totalReviews = Review::count();
+        $satisfactionPercent = round(($avgRating / 5) * 100, 1);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'satisfaction_percent' => $satisfactionPercent,
+                'average_rating' => round($avgRating, 2),
+                'total_reviews' => $totalReviews,
+            ],
+        ]);
+    }
+
+    /**
+     * Requests breakdown - completed vs cancelled per month
+     */
+    public function requestsBreakdown()
+    {
+        $completed = ServiceRequest::where('status', 'assigned')
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as count")
+            ->groupBy('month')
+            ->pluck('count', 'month');
+
+        $cancelled = ServiceRequest::where('status', 'cancelled')
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as count")
+            ->groupBy('month')
+            ->pluck('count', 'month');
+
+        // Merge all months
+        $months = $completed->keys()->merge($cancelled->keys())->unique()->sort();
+
+        return response()->json([
+            'success' => true,
+            'data' => $months->map(fn($m) => [
+                'month' => $m,
+                'completed' => $completed[$m] ?? 0,
+                'cancelled' => $cancelled[$m] ?? 0,
+            ])->values(),
+        ]);
+    }
+
+    /**
+     * Service utilization map - requests with location
+     */
+    public function serviceUtilization()
+    {
+        $locations = ServiceRequest::select('latitude', 'longitude', 'city_id')
+            ->with('city:id,name')
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->selectRaw('latitude, longitude, city_id, COUNT(*) as request_count')
+            ->groupBy('latitude', 'longitude', 'city_id')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $locations->map(fn($l) => [
+                'lat' => $l->latitude,
+                'lng' => $l->longitude,
+                'city' => $l->city->name ?? 'Unknown',
+                'count' => $l->request_count,
             ]),
         ]);
     }
