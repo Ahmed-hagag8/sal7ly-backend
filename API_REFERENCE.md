@@ -46,6 +46,9 @@
 | GET | `/profile` | — |
 | PUT | `/profile` | `{ name, email, phone }` |
 | POST | `/profile/image` | `image` (file, multipart/form-data) |
+## new
+| POST | `/profile/credentials` | `{ email, password, password_confirmation }` |
+##
 | GET | `/wallet` | — |
 | GET | `/wallet/transactions` | — |
 | GET | `/conversations` | — |
