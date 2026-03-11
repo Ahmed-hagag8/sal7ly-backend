@@ -21,8 +21,7 @@ use App\Http\Controllers\v1\Admin\DashboardController;
 use App\Http\Controllers\v1\AIController;
 
 
-// PUBLIC ROUTES 
-
+// PUBLIC ROUTES
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register/customer', [RegisterController::class, 'customer']);
 Route::post('/register/technician', [RegisterController::class, 'technician']);
@@ -40,7 +39,6 @@ Route::get('/health', function () {
 
 
 // PROTECTED ROUTES (authentication required)
-
 Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
