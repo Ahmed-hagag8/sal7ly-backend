@@ -83,4 +83,157 @@ class AuthController extends Controller
         return app(ProfileController::class)->show($request);
 
     }
+
+    /**
+     * Forgot password - send reset code
+     */
+    public function forgotPassword(Request $request)
+    {
+        $request->validate([
+            'phone' => 'required|string|exists:users,phone',
+        ]);
+
+        // Generate 6-digit code
+        $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        // Delete old codes for this phone
+        \DB::table('password_resets')->where('phone', $request->phone)->delete();
+
+        // Store new code (expires in 10 minutes)
+        \DB::table('password_resets')->insert([
+            'phone' => $request->phone,
+            'code' => Hash::make($code),
+            'expires_at' => now()->addMinutes(10),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // In production: send SMS with the code
+        // For now: return code in response (dev only)
+        return response()->json([
+            'success' => true,
+            'message' => 'Reset code sent to your phone',
+            'data' => [
+                'code' => $code, // Remove in production!
+                'expires_in' => '10 minutes',
+            ],
+        ]);
+    }
+
+    /**
+     * Reset password with code
+     */
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'phone' => 'required|string|exists:users,phone',
+            'code' => 'required|string|size:6',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        // Find the latest reset record
+        $reset = \DB::table('password_resets')
+            ->where('phone', $request->phone)
+            ->where('used', false)
+            ->where('expires_at', '>', now())
+            ->latest()
+            ->first();
+
+        if (!$reset) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired reset code',
+            ], 422);
+        }
+
+        // Verify code
+        if (!Hash::check($request->code, $reset->code)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid reset code',
+            ], 422);
+        }
+
+        // Update password
+        $user = User::where('phone', $request->phone)->first();
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        // Mark code as used
+        \DB::table('password_resets')->where('id', $reset->id)->update(['used' => true]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password reset successfully',
+        ]);
+    }
+
+    /**
+     * Send OTP for phone verification
+     */
+    public function sendOtp(Request $request)
+    {
+        $user = $request->user();
+
+        // Generate 6-digit OTP
+        $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        // Store OTP (reuse password_resets table)
+        \DB::table('password_resets')->where('phone', $user->phone)->delete();
+        \DB::table('password_resets')->insert([
+            'phone' => $user->phone,
+            'code' => Hash::make($code),
+            'expires_at' => now()->addMinutes(5),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // In production: send SMS
+        return response()->json([
+            'success' => true,
+            'message' => 'OTP sent to your phone',
+            'data' => [
+                'code' => $code, // Remove in production!
+                'expires_in' => '5 minutes',
+            ],
+        ]);
+    }
+
+    /**
+     * Verify phone OTP
+     */
+    public function verifyOtp(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|string|size:6',
+        ]);
+
+        $user = $request->user();
+
+        $reset = \DB::table('password_resets')
+            ->where('phone', $user->phone)
+            ->where('used', false)
+            ->where('expires_at', '>', now())
+            ->latest()
+            ->first();
+
+        if (!$reset || !Hash::check($request->code, $reset->code)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired OTP',
+            ], 422);
+        }
+
+        // Mark phone as verified
+        $user->phone_verified_at = now();
+        $user->save();
+
+        // Mark OTP as used
+        \DB::table('password_resets')->where('id', $reset->id)->update(['used' => true]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Phone verified successfully',
+        ]);
+    }
 }

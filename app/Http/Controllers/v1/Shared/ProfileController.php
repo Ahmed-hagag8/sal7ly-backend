@@ -221,4 +221,37 @@ class ProfileController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Delete user account (soft delete)
+     */
+    public function deleteAccount(Request $request)
+    {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        $user = $request->user();
+
+        // Verify password
+        if (!Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Password is incorrect',
+            ], 422);
+        }
+
+        // Revoke all tokens
+        $user->tokens()->delete();
+
+        // Deactivate and soft delete
+        $user->is_active = false;
+        $user->save();
+        $user->delete(); // soft delete
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Account deleted successfully',
+        ]);
+    }
 }

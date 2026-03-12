@@ -18,6 +18,7 @@ use App\Http\Controllers\v1\Customer\ReviewController;
 use App\Http\Controllers\v1\Shared\ChatController;
 use App\Http\Controllers\v1\Shared\NotificationController;
 use App\Http\Controllers\v1\Admin\DashboardController;
+use App\Http\Controllers\v1\Admin\CatalogController;
 use App\Http\Controllers\v1\AIController;
 
 
@@ -25,6 +26,8 @@ use App\Http\Controllers\v1\AIController;
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register/customer', [RegisterController::class, 'customer']);
 Route::post('/register/technician', [RegisterController::class, 'technician']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/categories', [ServiceCategoryController::class, 'index']);
 Route::get('/categories/{id}', [ServiceCategoryController::class, 'show']);
 Route::get('/categories/{id}/services', [ServiceCategoryController::class, 'services']);
@@ -43,10 +46,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
+    Route::post('/send-otp', [AuthController::class, 'sendOtp']);
+    Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
     Route::post('/profile/image', [ProfileController::class, 'uploadImage']);
     Route::post('/profile/credentials', [ProfileController::class, 'changeCredentials']);
+    Route::delete('/account', [ProfileController::class, 'deleteAccount']);
     Route::get('/wallet', [WalletController::class, 'show']);
     Route::get('/wallet/transactions', [WalletController::class, 'transactions']);
     Route::get('/conversations', [ChatController::class, 'index']);
@@ -83,6 +89,18 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::get('/reports/satisfaction', [DashboardController::class, 'customerSatisfaction']);
     Route::get('/reports/requests-breakdown', [DashboardController::class, 'requestsBreakdown']);
     Route::get('/reports/service-utilization', [DashboardController::class, 'serviceUtilization']);
+
+    // Catalog management
+    Route::post('/categories', [CatalogController::class, 'storeCategory']);
+    Route::put('/categories/{id}', [CatalogController::class, 'updateCategory']);
+    Route::delete('/categories/{id}', [CatalogController::class, 'deleteCategory']);
+    Route::post('/services', [CatalogController::class, 'storeService']);
+    Route::put('/services/{id}', [CatalogController::class, 'updateService']);
+    Route::delete('/services/{id}', [CatalogController::class, 'deleteService']);
+    Route::get('/cities', [CatalogController::class, 'cities']);
+    Route::post('/cities', [CatalogController::class, 'storeCity']);
+    Route::put('/cities/{id}', [CatalogController::class, 'updateCity']);
+    Route::delete('/cities/{id}', [CatalogController::class, 'deleteCity']);
 });
 
 

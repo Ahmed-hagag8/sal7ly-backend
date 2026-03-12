@@ -14,6 +14,8 @@
 | POST | `/login` | `{ phone, password }` |
 | POST | `/register/customer` | `{ name, phone, email, password, password_confirmation, city_id }` |
 | POST | `/register/technician` | `{ name, phone, email, password, password_confirmation, city_id, category_id, national_id }` |
+| POST | `/forgot-password` | `{ phone }` |
+| POST | `/reset-password` | `{ phone, code, password, password_confirmation }` |
 
 **Login Response:**
 ```json
@@ -43,12 +45,13 @@
 |--------|----------|---------------|
 | POST | `/logout` | — |
 | GET | `/me` | — |
+| POST | `/send-otp` | — (sends OTP to logged-in user's phone) |
+| POST | `/verify-otp` | `{ code }` |
 | GET | `/profile` | — |
 | PUT | `/profile` | `{ name, email, phone }` |
 | POST | `/profile/image` | `image` (file, multipart/form-data) |
-## new
 | POST | `/profile/credentials` | `{ email, password, password_confirmation }` |
-##
+| DELETE | `/account` | `{ password }` |
 | GET | `/wallet` | — |
 | GET | `/wallet/transactions` | — |
 | GET | `/conversations` | — |
@@ -137,6 +140,20 @@
 | GET | `/admin/reports/satisfaction` | Customer satisfaction % |
 | GET | `/admin/reports/requests-breakdown` | Completed vs cancelled/month |
 | GET | `/admin/reports/service-utilization` | Map data with lat/lng |
+
+### Catalog Management
+| Method | Endpoint | Body |
+|--------|----------|------|
+| POST | `/admin/categories` | `{ name, name_ar?, icon?, description?, is_active? }` |
+| PUT | `/admin/categories/{id}` | `{ name?, name_ar?, icon?, description?, is_active? }` |
+| DELETE | `/admin/categories/{id}` | — |
+| POST | `/admin/services` | `{ category_id, name, name_ar?, description?, base_price, is_active? }` |
+| PUT | `/admin/services/{id}` | `{ category_id?, name?, base_price?, is_active? }` |
+| DELETE | `/admin/services/{id}` | — |
+| GET | `/admin/cities` | — |
+| POST | `/admin/cities` | `{ name, name_ar?, is_active? }` |
+| PUT | `/admin/cities/{id}` | `{ name?, name_ar?, is_active? }` |
+| DELETE | `/admin/cities/{id}` | — |
 
 ---
 
