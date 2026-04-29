@@ -16,3 +16,11 @@ use Illuminate\Support\Facades\Broadcast;
 Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
     return (int) $user->id === (int) $id;
 });
+
+Broadcast::channel('job.{jobId}', function ($user, $jobId) {
+    $job = \App\Models\Job::find($jobId);
+    return $job && (
+        $job->customer_id === $user->customer?->id ||
+        $job->technician_id === $user->technician?->id
+    );
+});

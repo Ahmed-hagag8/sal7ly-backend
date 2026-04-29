@@ -20,6 +20,7 @@ use App\Http\Controllers\v1\Shared\NotificationController;
 use App\Http\Controllers\v1\Admin\DashboardController;
 use App\Http\Controllers\v1\Admin\CatalogController;
 use App\Http\Controllers\v1\AIController;
+use App\Http\Controllers\v1\Technician\LocationController;
 
 
 // PUBLIC ROUTES
@@ -120,6 +121,7 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
     Route::get('/jobs', [JobController::class, 'index']);
     Route::post('/jobs/{id}/start', [JobController::class, 'start']);
     Route::post('/jobs/{id}/complete', [JobController::class, 'complete']);
+    Route::post('/location', [LocationController::class, 'update']);
 });
 
 // Customer routes
@@ -133,4 +135,5 @@ Route::middleware(['auth:sanctum', 'role:customer'])->prefix('customer')->group(
     Route::post('/jobs/{id}/pay', [PaymentController::class, 'pay']);
     Route::get('/jobs', [ServiceRequestController::class, 'jobs']);
     Route::post('/jobs/{id}/review', [ReviewController::class, 'store']);
+    Route::get('/jobs/{id}/technician-location', [LocationController::class, 'show']);
 });

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\v1\Technician;
 use App\Http\Controllers\Controller;
 use App\Models\Job;
 use Illuminate\Http\Request;
+use App\Models\TechnicianLocation;
 
 class JobController extends Controller
 {
@@ -98,6 +99,7 @@ class JobController extends Controller
             'completed_at' => now(),
             'final_price' => $request->final_price ?? $job->agreed_price,
         ]);
+        TechnicianLocation::where('job_id', $job->id)->delete();
 
         $job->serviceRequest->update(['status' => 'completed']);
 
