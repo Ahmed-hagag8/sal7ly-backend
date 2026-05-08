@@ -44,7 +44,7 @@ Route::get('/health', function () {
 
 
 // PROTECTED ROUTES (authentication required)
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
@@ -69,7 +69,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // Admin routes
-Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
+Route::middleware(['auth:sanctum', 'active', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/technicians', [AdminTechnicianController::class, 'index']);
     Route::get('/technicians/{id}', [AdminTechnicianController::class, 'show']);
     Route::post('/technicians/{id}/approve', [AdminTechnicianController::class, 'approve']);
@@ -108,7 +108,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
 
 
 // Technician routes (authenticated technicians)
-Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->group(function () {
+Route::middleware(['auth:sanctum', 'role:technician', 'verified.technician', 'active'])->prefix('technician')->group(function () {
     Route::get('/documents', [DocumentController::class, 'index']);
     Route::post('/documents', [DocumentController::class, 'store']);
     Route::delete('/documents/{id}', [DocumentController::class, 'destroy']);
@@ -120,6 +120,7 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
     Route::get('/withdrawals', [WithdrawalController::class, 'index']);
     Route::post('/withdrawals', [WithdrawalController::class, 'store']);
     Route::get('/jobs', [JobController::class, 'index']);
+    Route::get('/jobs/{id}', [JobController::class, 'show']);
     Route::post('/jobs/{id}/start', [JobController::class, 'start']);
     Route::post('/jobs/{id}/complete', [JobController::class, 'complete']);
     Route::post('/location', [LocationController::class, 'update']);
@@ -127,7 +128,7 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
 });
 
 // Customer routes
-Route::middleware(['auth:sanctum', 'role:customer'])->prefix('customer')->group(function () {
+Route::middleware(['auth:sanctum', 'active', 'role:customer'])->prefix('customer')->group(function () {
     Route::post('/requests', [ServiceRequestController::class, 'store']);
     Route::get('/requests/{id}', [ServiceRequestController::class, 'show']);
     Route::post('/requests/{id}/cancel', [ServiceRequestController::class, 'cancel']);
@@ -136,6 +137,7 @@ Route::middleware(['auth:sanctum', 'role:customer'])->prefix('customer')->group(
     Route::post('/requests/{requestId}/offers/{offerId}/accept', [ServiceRequestController::class, 'acceptOffer']);
     Route::post('/jobs/{id}/pay', [PaymentController::class, 'pay']);
     Route::get('/jobs', [ServiceRequestController::class, 'jobs']);
+    Route::get('/jobs/{id}', [ServiceRequestController::class, 'showJob']);
     Route::post('/jobs/{id}/review', [ReviewController::class, 'store']);
     Route::get('/jobs/{id}/technician-location', [LocationController::class, 'show']);
 });

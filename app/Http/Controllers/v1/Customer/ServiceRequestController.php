@@ -288,6 +288,60 @@ class ServiceRequestController extends Controller
                 'status' => $job->status,
                 'is_paid' => $job->payment()->exists(),
             ]),
+            'meta' => [
+                'current_page' => $jobs->currentPage(),
+                'last_page' => $jobs->lastPage(),
+                'per_page' => $jobs->perPage(),
+                'total' => $jobs->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * Show single job detail for customer
+     */
+    public function showJob(Request $request, $id)
+    {
+        $customer = $request->user()->customer;
+        $job = \App\Models\Job::with(['serviceRequest.service', 'serviceRequest.city', 'technician.user', 'payment'])
+            ->where('customer_id', $customer->id)
+            ->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $job->id,
+                'job_number' => $job->job_number,
+                'service' => $job->serviceRequest->service->name,
+                'title' => $job->serviceRequest->title,
+                'description' => $job->serviceRequest->description,
+                'address' => $job->serviceRequest->address,
+                'city' => $job->serviceRequest->city->name ?? null,
+                'technician' => [
+                    'id' => $job->technician->id,
+                    'name' => $job->technician->user->name,
+                    'phone' => $job->technician->user->phone,
+                    'rating' => $job->technician->average_rating,
+                    'profile_image' => $job->technician->user->profile_image
+                        ? asset('storage/' . $job->technician->user->profile_image)
+                        : null,
+                ],
+                'agreed_price' => $job->agreed_price,
+                'final_price' => $job->final_price,
+                'status' => $job->status,
+                'started_at' => $job->started_at,
+                'completed_at' => $job->completed_at,
+                'is_paid' => $job->payment !== null,
+                'payment' => $job->payment ? [
+                    'payment_number' => $job->payment->payment_number,
+                    'amount' => $job->payment->amount,
+                    'method' => $job->payment->payment_method,
+                    'paid_at' => $job->payment->paid_at,
+                ] : null,
+                'has_reviewed' => \App\Models\Review::where('job_id', $job->id)
+                    ->where('type', 'customer_to_technician')->exists(),
+                'created_at' => $job->created_at,
+            ],
         ]);
     }
 

@@ -71,7 +71,21 @@ class WithdrawalController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $withdrawals,
+            'data' => collect($withdrawals->items())->map(fn($w) => [
+                'id' => $w->id,
+                'withdrawal_number' => $w->withdrawal_number,
+                'amount' => $w->amount,
+                'method' => $w->method,
+                'status' => $w->status,
+                'created_at' => $w->created_at,
+                'processed_at' => $w->processed_at,
+            ]),
+            'meta' => [
+                'current_page' => $withdrawals->currentPage(),
+                'last_page' => $withdrawals->lastPage(),
+                'per_page' => $withdrawals->perPage(),
+                'total' => $withdrawals->total(),
+            ],
         ]);
     }
 }

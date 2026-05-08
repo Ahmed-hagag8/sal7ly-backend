@@ -80,7 +80,7 @@ class CatalogController extends Controller
     public function storeService(Request $request)
     {
         $validated = $request->validate([
-            'category_id' => 'required|exists:service_categories,id',
+            'service_category_id' => 'required|exists:service_categories,id',
             'name' => 'required|string|max:255',
             'name_ar' => 'nullable|string|max:255',
             'description' => 'nullable|string',
@@ -105,7 +105,7 @@ class CatalogController extends Controller
         $service = Service::findOrFail($id);
 
         $validated = $request->validate([
-            'category_id' => 'sometimes|exists:service_categories,id',
+            'service_category_id' => 'sometimes|exists:service_categories,id',
             'name' => 'sometimes|string|max:255',
             'name_ar' => 'nullable|string|max:255',
             'description' => 'nullable|string',

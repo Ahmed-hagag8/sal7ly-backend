@@ -38,11 +38,55 @@ class JobController extends Controller
                 'status' => $job->status,
                 'created_at' => $job->created_at,
             ]),
-            'pagination' => [
+            'meta' => [
                 'current_page' => $jobs->currentPage(),
                 'last_page' => $jobs->lastPage(),
                 'per_page' => $jobs->perPage(),
                 'total' => $jobs->total(),
+            ],
+        ]);
+    }
+    /**
+     * Show single job detail
+     */
+    public function show(Request $request, $id)
+    {
+        $technician = $request->user()->technician;
+        $job = Job::with(['serviceRequest.service', 'serviceRequest.city', 'serviceRequest.images', 'customer.user', 'payment'])
+            ->where('technician_id', $technician->id)
+            ->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $job->id,
+                'job_number' => $job->job_number,
+                'service' => $job->serviceRequest->service->name,
+                'title' => $job->serviceRequest->title,
+                'description' => $job->serviceRequest->description,
+                'address' => $job->serviceRequest->address,
+                'city' => $job->serviceRequest->city->name ?? null,
+                'latitude' => $job->serviceRequest->latitude,
+                'longitude' => $job->serviceRequest->longitude,
+                'customer' => [
+                    'id' => $job->customer->id,
+                    'name' => $job->customer->user->name,
+                    'phone' => $job->customer->user->phone,
+                    'rating' => $job->customer->average_rating,
+                ],
+                'agreed_price' => $job->agreed_price,
+                'final_price' => $job->final_price,
+                'status' => $job->status,
+                'started_at' => $job->started_at,
+                'completed_at' => $job->completed_at,
+                'is_paid' => $job->payment !== null,
+                'has_reviewed' => \App\Models\Review::where('job_id', $job->id)
+                    ->where('type', 'technician_to_customer')->exists(),
+                'images' => $job->serviceRequest->images->map(fn($img) => [
+                    'id' => $img->id,
+                    'url' => asset('storage/' . $img->path),
+                ]),
+                'created_at' => $job->created_at,
             ],
         ]);
     }
@@ -102,6 +146,9 @@ class JobController extends Controller
         TechnicianLocation::where('job_id', $job->id)->delete();
 
         $job->serviceRequest->update(['status' => 'completed']);
+
+        // Increment technician's completed jobs counter
+        $job->technician->increment('total_jobs_completed');
 
         return response()->json([
             'success' => true,

@@ -9,11 +9,12 @@ use Illuminate\Support\Str;
 class PaymentService
 {
     protected WalletService $walletService;
-    protected float $commissionRate = 0.15; // 15% platform commission
+    protected float $commissionRate;
 
     public function __construct(WalletService $walletService)
     {
         $this->walletService = $walletService;
+        $this->commissionRate = config('sal7ly.commission_rate', 0.15);
     }
 
     /**

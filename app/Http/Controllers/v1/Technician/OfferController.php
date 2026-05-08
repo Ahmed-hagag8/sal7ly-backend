@@ -90,18 +90,22 @@ class OfferController extends Controller
             ->latest()
             ->paginate(10);
 
-        $offers->setCollection($offers->getCollection()->map(fn($offer) => [
-            'id' => $offer->id,
-            'request_number' => $offer->serviceRequest->request_number,
-            'title' => $offer->serviceRequest->title,
-            'offered_price' => $offer->offered_price,
-            'status' => $offer->status,
-            'created_at' => $offer->created_at,
-        ]));
-
         return response()->json([
             'success' => true,
-            'data' => $offers,
+            'data' => $offers->getCollection()->map(fn($offer) => [
+                'id' => $offer->id,
+                'request_number' => $offer->serviceRequest->request_number,
+                'title' => $offer->serviceRequest->title,
+                'offered_price' => $offer->offered_price,
+                'status' => $offer->status,
+                'created_at' => $offer->created_at,
+            ]),
+            'meta' => [
+                'current_page' => $offers->currentPage(),
+                'last_page' => $offers->lastPage(),
+                'per_page' => $offers->perPage(),
+                'total' => $offers->total(),
+            ],
         ]);
     }
 

@@ -113,10 +113,10 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Reset code sent to your phone',
-            'data' => [
-                'code' => $code, // Remove in production!
+            'data' => array_filter([
+                'code' => config('app.debug') ? $code : null,
                 'expires_in' => '10 minutes',
-            ],
+            ]),
         ]);
     }
 
@@ -192,10 +192,10 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'OTP sent to your phone',
-            'data' => [
-                'code' => $code, // Remove in production!
+            'data' => array_filter([
+                'code' => config('app.debug') ? $code : null,
                 'expires_in' => '5 minutes',
-            ],
+            ]),
         ]);
     }
 
