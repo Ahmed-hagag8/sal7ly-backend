@@ -15,6 +15,7 @@ use App\Http\Controllers\v1\Customer\PaymentController;
 use App\Http\Controllers\v1\Technician\WithdrawalController;
 use App\Http\Controllers\v1\Technician\JobController;
 use App\Http\Controllers\v1\Customer\ReviewController;
+use App\Http\Controllers\v1\Technician\ReviewController as TechnicianReviewController;
 use App\Http\Controllers\v1\Shared\ChatController;
 use App\Http\Controllers\v1\Shared\NotificationController;
 use App\Http\Controllers\v1\Admin\DashboardController;
@@ -122,6 +123,7 @@ Route::middleware(['auth:sanctum', 'role:technician'])->prefix('technician')->gr
     Route::post('/jobs/{id}/start', [JobController::class, 'start']);
     Route::post('/jobs/{id}/complete', [JobController::class, 'complete']);
     Route::post('/location', [LocationController::class, 'update']);
+    Route::post('/jobs/{id}/review', [TechnicianReviewController::class, 'store']);
 });
 
 // Customer routes

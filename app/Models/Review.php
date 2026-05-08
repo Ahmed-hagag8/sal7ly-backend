@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Review extends Model
 {
-    protected $fillable = ['job_id', 'customer_id', 'technician_id', 'rating', 'comment'];
+    protected $fillable = ['job_id', 'customer_id', 'technician_id', 'rating', 'comment', 'type'];
 
     public function job()
     {

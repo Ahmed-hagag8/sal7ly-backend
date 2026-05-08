@@ -22,7 +22,12 @@ class ReviewController extends Controller
             ->whereHas('payment') // Must be paid
             ->firstOrFail();
 
-        if ($job->review) {
+        // Check if customer already reviewed this job
+        $existing = Review::where('job_id', $job->id)
+            ->where('type', 'customer_to_technician')
+            ->first();
+
+        if ($existing) {
             return response()->json(['success' => false, 'message' => 'Already reviewed'], 400);
         }
 
@@ -32,11 +37,14 @@ class ReviewController extends Controller
             'technician_id' => $job->technician_id,
             'rating' => $request->rating,
             'comment' => $request->comment,
+            'type' => 'customer_to_technician',
         ]);
 
-        // Update technician average
+        // Update technician average (only from customer_to_technician reviews)
         $technician = $job->technician;
-        $avg = Review::where('technician_id', $technician->id)->avg('rating');
+        $avg = Review::where('technician_id', $technician->id)
+            ->where('type', 'customer_to_technician')
+            ->avg('rating');
         $technician->update(['average_rating' => round($avg, 2)]);
 
         return response()->json([

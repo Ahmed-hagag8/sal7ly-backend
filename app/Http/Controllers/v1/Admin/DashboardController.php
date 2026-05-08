@@ -106,7 +106,7 @@ class DashboardController extends Controller
      */
     public function users(Request $request)
     {
-        $query = User::query();
+        $query = User::with(['customer.city', 'technician']);
 
         if ($request->has('role')) {
             $query->where('role', $request->role);
@@ -120,9 +120,35 @@ class DashboardController extends Controller
             });
         }
 
+        /** @var \Illuminate\Pagination\LengthAwarePaginator $users */
+        $users = $query->latest()->paginate(15);
+
         return response()->json([
             'success' => true,
-            'data' => $query->latest()->paginate(15),
+            'data' => $users->through(function ($user) {
+                $item = [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone,
+                    'role' => $user->role,
+                    'is_active' => $user->is_active,
+                    'created_at' => $user->created_at,
+                ];
+
+                // Add rating and city for customers
+                if ($user->role === 'customer' && $user->customer) {
+                    $item['average_rating'] = $user->customer->average_rating;
+                    $item['city'] = $user->customer->city->name ?? null;
+                }
+
+                // Add rating for technicians
+                if ($user->role === 'technician' && $user->technician) {
+                    $item['average_rating'] = $user->technician->average_rating;
+                }
+
+                return $item;
+            }),
         ]);
     }
     /**
