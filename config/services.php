@@ -35,4 +35,10 @@ return [
         'url' => env('AI_SERVICE_URL', 'http://localhost:5000'),
     ],
 
+    'otp' => [
+        'driver' => env('OTP_DRIVER', 'log'),        // log | twilio
+        'expiry_minutes' => env('OTP_EXPIRY', 10),
+    ],
+
+
 ];

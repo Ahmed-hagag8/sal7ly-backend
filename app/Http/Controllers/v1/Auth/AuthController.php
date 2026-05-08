@@ -6,9 +6,17 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use App\Http\Controllers\v1\Shared\ProfileController;
+use App\Services\OtpService;
 
 class AuthController extends Controller
 {
+    protected OtpService $otpService;
+
+    public function __construct(OtpService $otpService)
+    {
+        $this->otpService = $otpService;
+    }
+
     /**
      * Login user and create token
      * 
@@ -93,29 +101,14 @@ class AuthController extends Controller
             'phone' => 'required|string|exists:users,phone',
         ]);
 
-        // Generate 6-digit code
-        $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $code = $this->otpService->send($request->phone);
 
-        // Delete old codes for this phone
-        \DB::table('password_resets')->where('phone', $request->phone)->delete();
-
-        // Store new code (expires in 10 minutes)
-        \DB::table('password_resets')->insert([
-            'phone' => $request->phone,
-            'code' => Hash::make($code),
-            'expires_at' => now()->addMinutes(10),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        // In production: send SMS with the code
-        // For now: return code in response (dev only)
         return response()->json([
             'success' => true,
             'message' => 'Reset code sent to your phone',
             'data' => array_filter([
                 'code' => config('app.debug') ? $code : null,
-                'expires_in' => '10 minutes',
+                'expires_in' => config('services.otp.expiry_minutes', 10) . ' minutes',
             ]),
         ]);
     }
@@ -131,26 +124,10 @@ class AuthController extends Controller
             'password' => 'required|string|min:8|confirmed',
         ]);
 
-        // Find the latest reset record
-        $reset = \DB::table('password_resets')
-            ->where('phone', $request->phone)
-            ->where('used', false)
-            ->where('expires_at', '>', now())
-            ->latest()
-            ->first();
-
-        if (!$reset) {
+        if (!$this->otpService->verify($request->phone, $request->code)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid or expired reset code',
-            ], 422);
-        }
-
-        // Verify code
-        if (!Hash::check($request->code, $reset->code)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid reset code',
             ], 422);
         }
 
@@ -158,9 +135,6 @@ class AuthController extends Controller
         $user = User::where('phone', $request->phone)->first();
         $user->password = Hash::make($request->password);
         $user->save();
-
-        // Mark code as used
-        \DB::table('password_resets')->where('id', $reset->id)->update(['used' => true]);
 
         return response()->json([
             'success' => true,
@@ -175,26 +149,14 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        // Generate 6-digit OTP
-        $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $code = $this->otpService->send($user->phone);
 
-        // Store OTP (reuse password_resets table)
-        \DB::table('password_resets')->where('phone', $user->phone)->delete();
-        \DB::table('password_resets')->insert([
-            'phone' => $user->phone,
-            'code' => Hash::make($code),
-            'expires_at' => now()->addMinutes(5),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        // In production: send SMS
         return response()->json([
             'success' => true,
             'message' => 'OTP sent to your phone',
             'data' => array_filter([
                 'code' => config('app.debug') ? $code : null,
-                'expires_in' => '5 minutes',
+                'expires_in' => config('services.otp.expiry_minutes', 10) . ' minutes',
             ]),
         ]);
     }
@@ -210,14 +172,7 @@ class AuthController extends Controller
 
         $user = $request->user();
 
-        $reset = \DB::table('password_resets')
-            ->where('phone', $user->phone)
-            ->where('used', false)
-            ->where('expires_at', '>', now())
-            ->latest()
-            ->first();
-
-        if (!$reset || !Hash::check($request->code, $reset->code)) {
+        if (!$this->otpService->verify($user->phone, $request->code)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid or expired OTP',
@@ -227,9 +182,6 @@ class AuthController extends Controller
         // Mark phone as verified
         $user->phone_verified_at = now();
         $user->save();
-
-        // Mark OTP as used
-        \DB::table('password_resets')->where('id', $reset->id)->update(['used' => true]);
 
         return response()->json([
             'success' => true,
