@@ -13,7 +13,7 @@
 |--------|----------|------|
 | POST | `/login` | `{ phone, password }` |
 | POST | `/register/customer` | `{ name, phone, email, password, password_confirmation, city_id }` |
-| POST | `/register/technician` | `{ name, phone, email, password, password_confirmation, city_id, category_id, national_id }` |
+| POST | `/register/technician` | `{ name, phone, email?, password, password_confirmation, city_id, service_category_id, years_of_experience?, bio?, latitude?, longitude? }` |
 | POST | `/forgot-password` | `{ phone }` |
 | POST | `/reset-password` | `{ phone, code, password, password_confirmation }` |
 
@@ -48,7 +48,7 @@
 | POST | `/send-otp` | — (sends OTP to logged-in user's phone) |
 | POST | `/verify-otp` | `{ code }` |
 | GET | `/profile` | — |
-| PUT | `/profile` | `{ name, email, phone }` |
+| PUT | `/profile` | `{ name?, email? }` + role fields (customer: `address?, city_id?, lat?, lng?` · technician: `bio?, years_of_experience?, city_id?, is_available?, lat?, lng?`) |
 | POST | `/profile/image` | `image` (file, multipart/form-data) |
 | POST | `/profile/credentials` | `{ email, password, password_confirmation }` |
 | DELETE | `/account` | `{ password }` |
@@ -70,15 +70,17 @@
 
 | Method | Endpoint | Body / Params |
 |--------|----------|---------------|
-| POST | `/customer/requests` | `{ service_id, city_id, title, description, address, latitude?, longitude?, preferred_date, preferred_time, images[]? }` |
-| GET | `/customer/requests` | `?status=pending\|open\|assigned\|cancelled` |
+| POST | `/customer/requests` | `{ service_id, city_id, title, description, address, latitude?, longitude?, preferred_date?, preferred_time?, images[]? }` |
+| GET | `/customer/requests` | `?status=pending\|open\|assigned\|completed\|cancelled` |
 | GET | `/customer/requests/{id}` | — |
 | POST | `/customer/requests/{id}/cancel` | — |
 | GET | `/customer/requests/{id}/offers` | — |
 | POST | `/customer/requests/{requestId}/offers/{offerId}/accept` | — |
 | GET | `/customer/jobs` | — |
+| GET | `/customer/jobs/{id}` | — |
 | POST | `/customer/jobs/{id}/pay` | `{ payment_method }` |
-| POST | `/customer/jobs/{id}/review` | `{ rating (1-5), comment? }` |
+| POST | `/customer/jobs/{id}/review` | `{ rating (1-5), comment? }` — type: `customer_to_technician` |
+| GET | `/customer/jobs/{id}/technician-location` | — (REST fallback for live tracking) |
 
 ---
 
@@ -87,16 +89,19 @@
 | Method | Endpoint | Body / Params |
 |--------|----------|---------------|
 | GET | `/technician/documents` | — |
-| POST | `/technician/documents` | `{ type, document }` (file) |
-| DELETE | `/technician/documents/{id}` | — |
+| POST | `/technician/documents` | `{ type, title, file }` (multipart — type: `national_id\|certification\|license\|other`) |
+| DELETE | `/technician/documents/{id}` | — (only pending) |
 | GET | `/technician/requests` | — |
 | GET | `/technician/requests/{id}` | — |
 | GET | `/technician/offers` | — |
 | POST | `/technician/requests/{id}/offer` | `{ offered_price, estimated_duration?, notes? }` |
-| DELETE | `/technician/offers/{id}` | — |
-| GET | `/technician/jobs` | — |
+| DELETE | `/technician/offers/{id}` | — (only pending) |
+| GET | `/technician/jobs` | `?status=scheduled\|in_progress\|completed\|cancelled` |
+| GET | `/technician/jobs/{id}` | — |
 | POST | `/technician/jobs/{id}/start` | — |
-| POST | `/technician/jobs/{id}/complete` | — |
+| POST | `/technician/jobs/{id}/complete` | `{ final_price? }` |
+| POST | `/technician/jobs/{id}/review` | `{ rating (1-5), comment? }` — type: `technician_to_customer` |
+| POST | `/technician/location` | `{ job_id, latitude, longitude, heading?, speed? }` |
 | GET | `/technician/withdrawals` | — |
 | POST | `/technician/withdrawals` | `{ amount, method }` |
 
@@ -193,7 +198,10 @@ const stats = await api.get('/admin/dashboard/stats');
 |------|-------|----------|
 | Admin | 01000000000 | password |
 | Customer | 01111111111 | password |
+| Customer | 01222222222 | password |
 | Technician (approved) | 01333333333 | password |
+| Technician | 01444444444 | password |
+| Technician | 01555555555 | password |
 
 ---
 
