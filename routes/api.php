@@ -34,6 +34,7 @@ Route::get('/categories', [ServiceCategoryController::class, 'index']);
 Route::get('/categories/{id}', [ServiceCategoryController::class, 'show']);
 Route::get('/categories/{id}/services', [ServiceCategoryController::class, 'services']);
 Route::get('/services', [ServiceCategoryController::class, 'allServices']);
+Route::get('/cities', [CatalogController::class, 'cities']);
 Route::get('/health', function () {
     return response()->json([
         'success' => true,

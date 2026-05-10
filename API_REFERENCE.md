@@ -35,6 +35,7 @@
 | GET | `/categories/{id}` | — |
 | GET | `/categories/{id}/services` | — |
 | GET | `/services` | — |
+| GET | `/cities` | — |
 | GET | `/health` | — |
 
 ---
