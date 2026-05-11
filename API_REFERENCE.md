@@ -16,6 +16,8 @@
 | POST | `/register/technician` | `{ name, phone, email?, password, password_confirmation, city_id, service_category_id, years_of_experience?, bio?, latitude?, longitude? }` |
 | POST | `/forgot-password` | `{ phone }` |
 | POST | `/reset-password` | `{ phone, code, password, password_confirmation }` |
+| POST | `/forgot-password-email` | `{ email }` |
+| POST | `/reset-password-email` | `{ email, code, password, password_confirmation }` |
 
 **Login Response:**
 ```json
@@ -27,6 +29,19 @@
   }
 }
 ```
+
+**Forgot Password (Email) Response:**
+```json
+{
+  "success": true,
+  "message": "Reset code sent to your email",
+  "data": {
+    "code": "482910",
+    "expires_in": "10 minutes"
+  }
+}
+```
+> **Note:** `code` is only returned when `APP_DEBUG=true` (for development/testing).
 
 ### Catalog
 | Method | Endpoint | Params |
@@ -42,25 +57,75 @@
 
 ## 👤 Shared (Any Authenticated User)
 
+### Phone OTP (Verification)
+| Method | Endpoint | Body / Params |
+|--------|----------|---------------|
+| POST | `/send-otp` | — (sends OTP to logged-in user's phone) |
+| POST | `/verify-otp` | `{ code }` |
+
+### Email OTP (Verification)
+| Method | Endpoint | Body / Params |
+|--------|----------|---------------|
+| POST | `/send-email-otp` | — (sends OTP to logged-in user's email) |
+| POST | `/verify-email-otp` | `{ code }` |
+
+**Send Email OTP Response:**
+```json
+{
+  "success": true,
+  "message": "OTP sent to your email",
+  "data": {
+    "email": "user@example.com",
+    "code": "329105",
+    "expires_in": "10 minutes"
+  }
+}
+```
+
+**Verify Email OTP Response:**
+```json
+{
+  "success": true,
+  "message": "Email verified successfully"
+}
+```
+
+> **Note:** `send-email-otp` requires the user to have an email set on their account. Returns 422 if no email exists or email is already verified.
+
+### Profile & Account
 | Method | Endpoint | Body / Params |
 |--------|----------|---------------|
 | POST | `/logout` | — |
 | GET | `/me` | — |
-| POST | `/send-otp` | — (sends OTP to logged-in user's phone) |
-| POST | `/verify-otp` | `{ code }` |
 | GET | `/profile` | — |
 | PUT | `/profile` | `{ name?, email? }` + role fields (customer: `address?, city_id?, lat?, lng?` · technician: `bio?, years_of_experience?, city_id?, is_available?, lat?, lng?`) |
 | POST | `/profile/image` | `image` (file, multipart/form-data) |
 | POST | `/profile/credentials` | `{ email, password, password_confirmation }` |
 | DELETE | `/account` | `{ password }` |
+
+### Wallet & Finance
+| Method | Endpoint | Body / Params |
+|--------|----------|---------------|
 | GET | `/wallet` | — |
 | GET | `/wallet/transactions` | — |
+
+### Chat
+| Method | Endpoint | Body / Params |
+|--------|----------|---------------|
 | GET | `/conversations` | — |
 | GET | `/conversations/{id}/messages` | — |
 | POST | `/conversations/{id}/messages` | `{ body }` |
+
+### Notifications
+| Method | Endpoint | Body / Params |
+|--------|----------|---------------|
 | GET | `/notifications` | — |
 | POST | `/notifications/{id}/read` | — |
 | POST | `/notifications/read-all` | — |
+
+### AI Services
+| Method | Endpoint | Body / Params |
+|--------|----------|---------------|
 | POST | `/ai/predict-price` | `{ service_id, description }` |
 | POST | `/ai/detect-image` | `image` (file) |
 | POST | `/ai/chat` | `{ message }` |
@@ -187,6 +252,23 @@ export default api;
 const { data } = await api.post('/login', { phone: '01000000000', password: 'password' });
 localStorage.setItem('token', data.data.token);
 
+// Send email OTP (must be logged in with email on account)
+await api.post('/send-email-otp');
+
+// Verify email OTP
+await api.post('/verify-email-otp', { code: '123456' });
+
+// Forgot password via email (public — no auth needed)
+await api.post('/forgot-password-email', { email: 'user@example.com' });
+
+// Reset password via email code (public — no auth needed)
+await api.post('/reset-password-email', {
+  email: 'user@example.com',
+  code: '123456',
+  password: 'newpassword',
+  password_confirmation: 'newpassword',
+});
+
 // Get dashboard stats
 const stats = await api.get('/admin/dashboard/stats');
 ```
@@ -213,3 +295,6 @@ const stats = await api.get('/admin/dashboard/stats');
 - File uploads: use `multipart/form-data`
 - Currency: **EGP** (Egyptian Pound)
 - Dates: `YYYY-MM-DD`
+- **OTP codes** are only returned in API responses when `APP_DEBUG=true`
+- **Email OTP** uses `OTP_EMAIL_DRIVER` env var: `log` (dev — code in laravel.log) or `smtp` (production — real email)
+- **Phone OTP** uses `OTP_DRIVER` env var: `log` (dev) or `twilio` (production)

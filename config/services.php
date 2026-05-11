@@ -36,7 +36,8 @@ return [
     ],
 
     'otp' => [
-        'driver' => env('OTP_DRIVER', 'log'),        // log | twilio
+        'driver' => env('OTP_DRIVER', 'log'),              // log | twilio  (phone SMS)
+        'email_driver' => env('OTP_EMAIL_DRIVER', 'log'),  // log | smtp    (email)
         'expiry_minutes' => env('OTP_EXPIRY', 10),
     ],
 

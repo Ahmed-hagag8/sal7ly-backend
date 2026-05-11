@@ -30,6 +30,8 @@ Route::post('/register/customer', [RegisterController::class, 'customer']);
 Route::post('/register/technician', [RegisterController::class, 'technician']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+Route::post('/forgot-password-email', [AuthController::class, 'forgotPasswordEmail']);
+Route::post('/reset-password-email', [AuthController::class, 'resetPasswordEmail']);
 Route::get('/categories', [ServiceCategoryController::class, 'index']);
 Route::get('/categories/{id}', [ServiceCategoryController::class, 'show']);
 Route::get('/categories/{id}/services', [ServiceCategoryController::class, 'services']);
@@ -51,6 +53,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/send-otp', [AuthController::class, 'sendOtp']);
     Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
+    Route::post('/send-email-otp', [AuthController::class, 'sendEmailOtp']);
+    Route::post('/verify-email-otp', [AuthController::class, 'verifyEmailOtp']);
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);
     Route::post('/profile/image', [ProfileController::class, 'uploadImage']);

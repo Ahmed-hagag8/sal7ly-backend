@@ -92,8 +92,10 @@ class AuthController extends Controller
 
     }
 
+    // ========== PHONE OTP ==========
+
     /**
-     * Forgot password - send reset code
+     * Forgot password - send reset code via phone
      */
     public function forgotPassword(Request $request)
     {
@@ -114,7 +116,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Reset password with code
+     * Reset password with phone code
      */
     public function resetPassword(Request $request)
     {
@@ -186,6 +188,128 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Phone verified successfully',
+        ]);
+    }
+
+    // ========== EMAIL OTP ==========
+
+    /**
+     * Send OTP for email verification (authenticated user)
+     */
+    public function sendEmailOtp(Request $request)
+    {
+        $user = $request->user();
+
+        if (!$user->email) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No email address on your account. Update your profile first.',
+            ], 422);
+        }
+
+        if ($user->email_verified_at) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email is already verified',
+            ], 422);
+        }
+
+        $code = $this->otpService->sendToEmail($user->email, $user->name);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'OTP sent to your email',
+            'data' => array_filter([
+                'email' => $user->email,
+                'code' => config('app.debug') ? $code : null,
+                'expires_in' => config('services.otp.expiry_minutes', 10) . ' minutes',
+            ]),
+        ]);
+    }
+
+    /**
+     * Verify email OTP (authenticated user)
+     */
+    public function verifyEmailOtp(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|string|size:6',
+        ]);
+
+        $user = $request->user();
+
+        if (!$user->email) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No email address on your account',
+            ], 422);
+        }
+
+        if (!$this->otpService->verifyEmail($user->email, $request->code)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired email OTP',
+            ], 422);
+        }
+
+        // Mark email as verified
+        $user->email_verified_at = now();
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Email verified successfully',
+        ]);
+    }
+
+    /**
+     * Forgot password - send reset code via email
+     */
+    public function forgotPasswordEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+        $code = $this->otpService->sendToEmail($request->email, $user->name);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Reset code sent to your email',
+            'data' => array_filter([
+                'code' => config('app.debug') ? $code : null,
+                'expires_in' => config('services.otp.expiry_minutes', 10) . ' minutes',
+            ]),
+        ]);
+    }
+
+    /**
+     * Reset password with email code
+     */
+    public function resetPasswordEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+            'code' => 'required|string|size:6',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        if (!$this->otpService->verifyEmail($request->email, $request->code)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired reset code',
+            ], 422);
+        }
+
+        // Update password
+        $user = User::where('email', $request->email)->first();
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password reset successfully',
         ]);
     }
 }
