@@ -25,29 +25,46 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-        // Step 1: Validate the input
+        // Step 1: Validate — require email OR phone (at least one), plus password
         $request->validate([
-            'phone' => 'required|string',
+            'email' => 'required_without:phone|nullable|email',
+            'phone' => 'required_without:email|nullable|string',
             'password' => 'required|string',
         ]);
-        // Step 2: Find user by phone
-        $user = User::where('phone', $request->phone)->first();
+
+        // Step 2: Find user — try email first, fall back to phone
+        $user = null;
+        $loginField = 'credentials'; // for error messages
+
+        if ($request->filled('email')) {
+            $user = User::where('email', $request->email)->first();
+            $loginField = 'email';
+        } elseif ($request->filled('phone')) {
+            $user = User::where('phone', $request->phone)->first();
+            $loginField = 'phone';
+        }
+
         // Step 3: Check password
         if (!$user || !Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
-                'phone' => ['The provided credentials are incorrect.'],
+                $loginField => ['The provided credentials are incorrect.'],
             ]);
         }
         // Step 4: Check if user is active
         if (!$user->is_active) {
             throw ValidationException::withMessages([
-                'phone' => ['Your account has been deactivated.'],
+                $loginField => ['Your account has been deactivated.'],
             ]);
         }
-        // Step 5: Create token
-        // 'auth_token' is just a name to identify this token
+        // Step 5: Admin email verification check (web dashboard security)
+        if ($user->role === 'admin' && $loginField === 'email' && !$user->email_verified_at) {
+            throw ValidationException::withMessages([
+                'email' => ['Your email is not verified. Please verify your email first.'],
+            ]);
+        }
+        // Step 6: Create token
         $token = $user->createToken('auth_token')->plainTextToken;
-        // Step 6: Return user data + token
+        // Step 7: Return user data + token
         return response()->json([
             'success' => true,
             'message' => 'Login successful',
