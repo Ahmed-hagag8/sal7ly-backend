@@ -386,4 +386,145 @@ class DashboardController extends Controller
             ]),
         ]);
     }
+
+    /**
+     * Show single user details (View button)
+     * GET /admin/users/{id}
+     */
+    public function showUser($id)
+    {
+        $user = User::with(['customer.city', 'technician.category', 'wallet'])->findOrFail($id);
+
+        $data = [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'role' => $user->role,
+            'is_active' => $user->is_active,
+            'profile_image' => $user->profile_image
+                ? asset('storage/' . $user->profile_image)
+                : null,
+            'email_verified_at' => $user->email_verified_at,
+            'phone_verified_at' => $user->phone_verified_at,
+            'created_at' => $user->created_at,
+            'updated_at' => $user->updated_at,
+        ];
+
+        // Customer-specific data
+        if ($user->role === 'customer' && $user->customer) {
+            $data['customer'] = [
+                'address' => $user->customer->address,
+                'city' => $user->customer->city->name ?? null,
+                'city_id' => $user->customer->city_id,
+                'latitude' => $user->customer->latitude,
+                'longitude' => $user->customer->longitude,
+                'average_rating' => $user->customer->average_rating,
+                'total_requests' => ServiceRequest::where('customer_id', $user->customer->id)->count(),
+                'total_jobs' => Job::where('customer_id', $user->customer->id)->count(),
+                'completed_jobs' => Job::where('customer_id', $user->customer->id)->where('status', 'completed')->count(),
+            ];
+        }
+
+        // Technician-specific data
+        if ($user->role === 'technician' && $user->technician) {
+            $data['technician'] = [
+                'service_category' => $user->technician->category->name ?? null,
+                'service_category_id' => $user->technician->service_category_id,
+                'city' => $user->technician->city->name ?? null,
+                'city_id' => $user->technician->city_id,
+                'years_of_experience' => $user->technician->years_of_experience,
+                'bio' => $user->technician->bio,
+                'verification_status' => $user->technician->verification_status,
+                'average_rating' => $user->technician->average_rating,
+                'total_jobs_completed' => $user->technician->total_jobs_completed,
+                'is_available' => $user->technician->is_available,
+            ];
+        }
+
+        // Wallet data
+        if ($user->wallet) {
+            $data['wallet'] = [
+                'balance' => $user->wallet->balance,
+                'pending_balance' => $user->wallet->pending_balance,
+                'total_earned' => $user->wallet->total_earned,
+                'total_withdrawn' => $user->wallet->total_withdrawn,
+            ];
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+        ]);
+    }
+
+    /**
+     * Disable/Enable user (toggle is_active)
+     * POST /admin/users/{id}/toggle-active
+     */
+    public function toggleUserActive($id)
+    {
+        $user = User::findOrFail($id);
+
+        // Prevent admin from disabling themselves
+        if ($user->id === auth()->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You cannot disable your own account',
+            ], 403);
+        }
+
+        $user->is_active = !$user->is_active;
+        $user->save();
+
+        // If deactivating, revoke all tokens so they are logged out
+        if (!$user->is_active) {
+            $user->tokens()->delete();
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $user->is_active
+                ? 'User activated successfully'
+                : 'User disabled successfully',
+            'data' => [
+                'id' => $user->id,
+                'is_active' => $user->is_active,
+            ],
+        ]);
+    }
+
+    /**
+     * Block user (soft delete + deactivate + revoke tokens)
+     * POST /admin/users/{id}/block
+     */
+    public function blockUser($id)
+    {
+        $user = User::findOrFail($id);
+
+        // Prevent admin from blocking themselves
+        if ($user->id === auth()->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You cannot block your own account',
+            ], 403);
+        }
+
+        // Revoke all tokens
+        $user->tokens()->delete();
+
+        // Deactivate and soft delete
+        $user->is_active = false;
+        $user->save();
+        $user->delete(); // soft delete
+
+        return response()->json([
+            'success' => true,
+            'message' => 'User blocked successfully',
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+            ],
+        ]);
+    }
 }
