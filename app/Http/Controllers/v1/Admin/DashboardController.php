@@ -527,4 +527,163 @@ class DashboardController extends Controller
             ],
         ]);
     }
+
+    /**
+     * List all service requests (admin view)
+     * GET /admin/requests
+     */
+    public function requests(Request $request)
+    {
+        $query = ServiceRequest::with(['customer.user', 'service', 'city']);
+
+        // Filter by status
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Search by request number, title, or customer name
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('request_number', 'like', "%{$search}%")
+                    ->orWhere('title', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhereHas('customer.user', function ($q2) use ($search) {
+                        $q2->where('name', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        // Filter by city
+        if ($request->has('city_id')) {
+            $query->where('city_id', $request->city_id);
+        }
+
+        // Filter by service
+        if ($request->has('service_id')) {
+            $query->where('service_id', $request->service_id);
+        }
+
+        // Filter by date range
+        if ($request->has('from')) {
+            $query->whereDate('created_at', '>=', $request->from);
+        }
+        if ($request->has('to')) {
+            $query->whereDate('created_at', '<=', $request->to);
+        }
+
+        /** @var \Illuminate\Pagination\LengthAwarePaginator $requests */
+        $requests = $query->latest()->paginate(15);
+
+        return response()->json([
+            'success' => true,
+            'data' => $requests->through(function ($req) {
+                return [
+                    'id' => $req->id,
+                    'request_number' => $req->request_number,
+                    'title' => $req->title,
+                    'description' => $req->description,
+                    'status' => $req->status,
+                    'service' => $req->service->name ?? null,
+                    'city' => $req->city->name ?? null,
+                    'customer' => [
+                        'id' => $req->customer->id ?? null,
+                        'name' => $req->customer->user->name ?? null,
+                        'phone' => $req->customer->user->phone ?? null,
+                    ],
+                    'address' => $req->address,
+                    'preferred_date' => $req->preferred_date,
+                    'preferred_time' => $req->preferred_time,
+                    'offers_count' => $req->offers()->count(),
+                    'created_at' => $req->created_at,
+                ];
+            }),
+            'meta' => [
+                'current_page' => $requests->currentPage(),
+                'last_page' => $requests->lastPage(),
+                'per_page' => $requests->perPage(),
+                'total' => $requests->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * Show single service request details (admin view)
+     * GET /admin/requests/{id}
+     */
+    public function showRequest($id)
+    {
+        $serviceRequest = ServiceRequest::with([
+            'customer.user',
+            'service',
+            'city',
+            'images',
+            'offers.technician.user',
+            'job.technician.user',
+            'job.payment',
+        ])->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $serviceRequest->id,
+                'request_number' => $serviceRequest->request_number,
+                'title' => $serviceRequest->title,
+                'description' => $serviceRequest->description,
+                'status' => $serviceRequest->status,
+                'service' => $serviceRequest->service->name ?? null,
+                'service_id' => $serviceRequest->service_id,
+                'city' => $serviceRequest->city->name ?? null,
+                'city_id' => $serviceRequest->city_id,
+                'address' => $serviceRequest->address,
+                'latitude' => $serviceRequest->latitude,
+                'longitude' => $serviceRequest->longitude,
+                'preferred_date' => $serviceRequest->preferred_date,
+                'preferred_time' => $serviceRequest->preferred_time,
+                'ai_predicted_price' => $serviceRequest->ai_predicted_price,
+                'customer' => [
+                    'id' => $serviceRequest->customer->id ?? null,
+                    'user_id' => $serviceRequest->customer->user_id ?? null,
+                    'name' => $serviceRequest->customer->user->name ?? null,
+                    'phone' => $serviceRequest->customer->user->phone ?? null,
+                    'email' => $serviceRequest->customer->user->email ?? null,
+                ],
+                'images' => $serviceRequest->images->map(fn($img) => [
+                    'id' => $img->id,
+                    'url' => asset('storage/' . $img->path),
+                    'status' => $img->status,
+                ]),
+                'offers' => $serviceRequest->offers->map(fn($offer) => [
+                    'id' => $offer->id,
+                    'technician' => [
+                        'id' => $offer->technician->id ?? null,
+                        'name' => $offer->technician->user->name ?? null,
+                        'phone' => $offer->technician->user->phone ?? null,
+                    ],
+                    'offered_price' => $offer->offered_price,
+                    'estimated_duration' => $offer->estimated_duration,
+                    'notes' => $offer->notes,
+                    'status' => $offer->status,
+                    'created_at' => $offer->created_at,
+                ]),
+                'job' => $serviceRequest->job ? [
+                    'id' => $serviceRequest->job->id,
+                    'job_number' => $serviceRequest->job->job_number,
+                    'status' => $serviceRequest->job->status,
+                    'agreed_price' => $serviceRequest->job->agreed_price,
+                    'final_price' => $serviceRequest->job->final_price,
+                    'technician' => [
+                        'id' => $serviceRequest->job->technician->id ?? null,
+                        'name' => $serviceRequest->job->technician->user->name ?? null,
+                    ],
+                    'is_paid' => $serviceRequest->job->payment !== null,
+                    'started_at' => $serviceRequest->job->started_at,
+                    'completed_at' => $serviceRequest->job->completed_at,
+                ] : null,
+                'created_at' => $serviceRequest->created_at,
+                'updated_at' => $serviceRequest->updated_at,
+            ],
+        ]);
+    }
 }

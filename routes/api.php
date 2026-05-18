@@ -88,6 +88,8 @@ Route::middleware(['auth:sanctum', 'active', 'role:admin'])->prefix('admin')->gr
     Route::get('/users/{id}', [DashboardController::class, 'showUser']);
     Route::post('/users/{id}/toggle-active', [DashboardController::class, 'toggleUserActive']);
     Route::post('/users/{id}/block', [DashboardController::class, 'blockUser']);
+    Route::get('/requests', [DashboardController::class, 'requests']);
+    Route::get('/requests/{id}', [DashboardController::class, 'showRequest']);
     Route::get('/billing/transactions', [DashboardController::class, 'transactions']);
     Route::get('/billing/withdrawals', [DashboardController::class, 'withdrawals']);
     Route::get('/billing/wallet-overview', [DashboardController::class, 'walletOverview']);
