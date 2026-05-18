@@ -127,7 +127,7 @@ class DashboardController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $users->through(function ($user) {
+            'data' => collect($users->items())->map(function ($user) {
                 $item = [
                     'id' => $user->id,
                     'name' => $user->name,
@@ -151,6 +151,12 @@ class DashboardController extends Controller
 
                 return $item;
             }),
+            'meta' => [
+                'current_page' => $users->currentPage(),
+                'last_page' => $users->lastPage(),
+                'per_page' => $users->perPage(),
+                'total' => $users->total(),
+            ],
         ]);
     }
     /**
@@ -164,18 +170,23 @@ class DashboardController extends Controller
         }
         /** @var \Illuminate\Pagination\LengthAwarePaginator $transactions */
         $transactions = $query->latest()->paginate(20);
-        $transactions = $transactions->through(fn($p) => [
-            'transaction_id' => $p->payment_number,
-            'date' => $p->created_at->format('Y-m-d'),
-            'customer' => $p->customer->user->name,
-            'technician' => $p->technician->user->name,
-            'service' => $p->job->serviceRequest->service->name ?? 'N/A',
-            'amount' => $p->amount,
-            'status' => $p->status,
-        ]);
         return response()->json([
             'success' => true,
-            'data' => $transactions,
+            'data' => collect($transactions->items())->map(fn($p) => [
+                'transaction_id' => $p->payment_number,
+                'date' => $p->created_at->format('Y-m-d'),
+                'customer' => $p->customer->user->name,
+                'technician' => $p->technician->user->name,
+                'service' => $p->job->serviceRequest->service->name ?? 'N/A',
+                'amount' => $p->amount,
+                'status' => $p->status,
+            ]),
+            'meta' => [
+                'current_page' => $transactions->currentPage(),
+                'last_page' => $transactions->lastPage(),
+                'per_page' => $transactions->perPage(),
+                'total' => $transactions->total(),
+            ],
         ]);
     }
     /**
@@ -189,20 +200,25 @@ class DashboardController extends Controller
         }
         /** @var \Illuminate\Pagination\LengthAwarePaginator $withdrawals */
         $withdrawals = $query->latest()->paginate(20);
-        $withdrawals->setCollection($withdrawals->getCollection()->map(fn($w) => [
-            'id' => $w->withdrawal_number,
-            'name' => $w->user->name,
-            'email' => $w->user->email,
-            'amount' => $w->amount,
-            'status' => $w->status,
-            'method' => $w->method,
-            'requested_date' => $w->created_at->format('Y-m-d'),
-            'processed_date' => $w->processed_at?->format('Y-m-d'),
-            'transaction_id' => $w->withdrawal_number,
-        ]));
         return response()->json([
             'success' => true,
-            'data' => $withdrawals,
+            'data' => collect($withdrawals->items())->map(fn($w) => [
+                'id' => $w->withdrawal_number,
+                'name' => $w->user->name,
+                'email' => $w->user->email,
+                'amount' => $w->amount,
+                'status' => $w->status,
+                'method' => $w->method,
+                'requested_date' => $w->created_at->format('Y-m-d'),
+                'processed_date' => $w->processed_at?->format('Y-m-d'),
+                'transaction_id' => $w->withdrawal_number,
+            ]),
+            'meta' => [
+                'current_page' => $withdrawals->currentPage(),
+                'last_page' => $withdrawals->lastPage(),
+                'per_page' => $withdrawals->perPage(),
+                'total' => $withdrawals->total(),
+            ],
         ]);
     }
     /**
@@ -236,7 +252,7 @@ class DashboardController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $wallets->through(fn($w) => [
+            'data' => collect($wallets->items())->map(fn($w) => [
                 'id' => 'TXN' . str_pad($w->id, 5, '0', STR_PAD_LEFT),
                 'name' => $w->user->name,
                 'role' => $w->user->role,
@@ -247,6 +263,12 @@ class DashboardController extends Controller
                 'type' => $w->transactions()->latest()->first()?->type ?? 'N/A',
                 'status' => 'active',
             ]),
+            'meta' => [
+                'current_page' => $wallets->currentPage(),
+                'last_page' => $wallets->lastPage(),
+                'per_page' => $wallets->perPage(),
+                'total' => $wallets->total(),
+            ],
         ]);
     }
 
@@ -589,7 +611,7 @@ class DashboardController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $requests->through(function ($req) {
+            'data' => collect($requests->items())->map(function ($req) {
                 return [
                     'id' => $req->id,
                     'request_number' => $req->request_number,
