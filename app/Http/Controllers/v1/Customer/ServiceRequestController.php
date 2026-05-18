@@ -131,7 +131,7 @@ class ServiceRequestController extends Controller
             ], 404);
         }
 
-        if (!in_array($serviceRequest->status, ['pending', 'open'])) {
+        if (!in_array($serviceRequest->status, ['pending', 'open', 'assigned', 'in_progress'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Cannot cancel request in current status',

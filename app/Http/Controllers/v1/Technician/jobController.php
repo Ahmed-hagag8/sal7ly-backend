@@ -112,6 +112,9 @@ class JobController extends Controller
             'started_at' => now(),
         ]);
 
+        // Update service request status to in_progress
+        $job->serviceRequest->update(['status' => 'in_progress']);
+
         return response()->json([
             'success' => true,
             'message' => 'Job started!',

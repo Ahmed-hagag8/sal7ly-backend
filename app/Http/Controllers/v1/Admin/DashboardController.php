@@ -71,8 +71,10 @@ class DashboardController extends Controller
                 ],
                 'requests' => [
                     'total' => ServiceRequest::count(),
-                    'pending' => ServiceRequest::where('status', 'pending')->count(),
-                    'open' => ServiceRequest::where('status', 'open')->count(),
+                    'waiting' => ServiceRequest::whereIn('status', ['pending', 'open'])->count(),
+                    'in_progress' => ServiceRequest::whereIn('status', ['assigned', 'in_progress'])->count(),
+                    'completed' => ServiceRequest::where('status', 'completed')->count(),
+                    'cancelled' => ServiceRequest::where('status', 'cancelled')->count(),
                 ],
                 'financials' => [
                     'total_payments' => Payment::sum('amount'),
@@ -340,7 +342,7 @@ class DashboardController extends Controller
      */
     public function requestsBreakdown()
     {
-        $completed = ServiceRequest::where('status', 'assigned')
+        $completed = ServiceRequest::whereIn('status', ['assigned', 'in_progress', 'completed'])
             ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as count")
             ->groupBy('month')
             ->pluck('count', 'month');
@@ -536,9 +538,18 @@ class DashboardController extends Controller
     {
         $query = ServiceRequest::with(['customer.user', 'service', 'city']);
 
-        // Filter by status
+        // Filter by status (dashboard-friendly groups)
+        // waiting = pending + open | in_progress = assigned + in_progress
         if ($request->has('status')) {
-            $query->where('status', $request->status);
+            $statusMap = [
+                'waiting' => ['pending', 'open'],
+                'in_progress' => ['assigned', 'in_progress'],
+                'completed' => ['completed'],
+                'cancelled' => ['cancelled'],
+            ];
+
+            $statuses = $statusMap[$request->status] ?? [$request->status];
+            $query->whereIn('status', $statuses);
         }
 
         // Search by request number, title, or customer name
@@ -584,7 +595,12 @@ class DashboardController extends Controller
                     'request_number' => $req->request_number,
                     'title' => $req->title,
                     'description' => $req->description,
-                    'status' => $req->status,
+                    'status' => match($req->status) {
+                        'pending', 'open' => 'waiting',
+                        'assigned', 'in_progress' => 'in_progress',
+                        default => $req->status,
+                    },
+                    'status_raw' => $req->status,
                     'service' => $req->service->name ?? null,
                     'city' => $req->city->name ?? null,
                     'customer' => [
