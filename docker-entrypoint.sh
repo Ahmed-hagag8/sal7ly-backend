@@ -18,11 +18,8 @@ php artisan view:cache
 echo "Running migrations..."
 php artisan migrate --force
 
-echo "Configuring Apache to listen on Railway's dynamic port..."
-# Default to port 80 if Railway doesn't provide $PORT
-LISTEN_PORT=${PORT:-80}
-sed -i "s/Listen 80/Listen ${LISTEN_PORT}/g" /etc/apache2/ports.conf
-sed -i "s/:80/:${LISTEN_PORT}/g" /etc/apache2/sites-available/000-default.conf
+# Create storage symlink for file serving
+php artisan storage:link || true
 
-echo "Starting Apache web server on port ${LISTEN_PORT}..."
+echo "Starting Apache web server on port 80..."
 exec apache2-foreground
