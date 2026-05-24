@@ -18,6 +18,9 @@ php artisan view:cache
 echo "Running migrations..."
 php artisan migrate --force
 
+echo "Running database seeders to populate dummy data..."
+php artisan db:seed --force
+
 # Create storage symlink for file serving
 php artisan storage:link || true
 
