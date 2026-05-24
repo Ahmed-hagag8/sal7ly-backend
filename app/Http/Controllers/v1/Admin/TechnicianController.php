@@ -80,7 +80,7 @@ class TechnicianController extends Controller
                     'id' => $doc->id,
                     'type' => $doc->type,
                     'title' => $doc->title,
-                    'file_url' => asset('storage/' . $doc->file_path),
+                    'file_url' => url('/api/admin/documents/' . $doc->id . '/download'),
                     'status' => $doc->status,
                     'rejection_reason' => $doc->rejection_reason,
                 ]),
@@ -217,6 +217,49 @@ class TechnicianController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Withdrawal ' . $request->action . 'd',
+        ]);
+    }
+
+    /**
+     * Download document securely (Admin only)
+     */
+    public function downloadDocument($documentId)
+    {
+        \Log::info("downloadDocument called for document ID: {$documentId}");
+        
+        $document = TechnicianDocument::findOrFail($documentId);
+        
+        \Log::info("Document file_path: {$document->file_path}");
+        
+        // New secure path
+        $path = storage_path('app/' . $document->file_path);
+        
+        // Fallback for older documents that were saved in the public disk
+        $oldPath = storage_path('app/public/' . $document->file_path);
+        
+        $filePath = null;
+        if (file_exists($path)) {
+            $filePath = $path;
+        } elseif (file_exists($oldPath)) {
+            $filePath = $oldPath;
+        }
+        
+        if (!$filePath) {
+            \Log::error("Document file not found. Checked: {$path} and {$oldPath}");
+            return response()->json([
+                'success' => false,
+                'message' => 'Document file not found on server.',
+            ], 404);
+        }
+        
+        \Log::info("Serving file from: {$filePath}");
+        
+        $mimeType = mime_content_type($filePath);
+        
+        return response()->file($filePath, [
+            'Content-Type' => $mimeType,
+            'Access-Control-Allow-Origin' => '*',
+            'Cache-Control' => 'no-cache',
         ]);
     }
 }

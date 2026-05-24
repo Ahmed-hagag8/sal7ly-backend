@@ -32,7 +32,7 @@ class DocumentController extends Controller
                 'id' => $doc->id,
                 'type' => $doc->type,
                 'title' => $doc->title,
-                'file_url' => asset('storage/' . $doc->file_path),
+                // Files are secured, so no direct public URL
                 'status' => $doc->status,
                 'rejection_reason' => $doc->rejection_reason,
                 'uploaded_at' => $doc->created_at,
@@ -66,7 +66,7 @@ class DocumentController extends Controller
         // Store file securely
         $path = $request->file('file')->store(
             "technician_documents/{$technician->id}",
-            'public'
+            'local'
         );
 
         $document = TechnicianDocument::create([
@@ -116,7 +116,7 @@ class DocumentController extends Controller
         }
 
         // Delete file
-        Storage::disk('public')->delete($document->file_path);
+        Storage::disk('local')->delete($document->file_path);
         $document->delete();
 
         return response()->json([

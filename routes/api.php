@@ -79,6 +79,7 @@ Route::middleware(['auth:sanctum', 'active', 'role:admin'])->prefix('admin')->gr
     Route::get('/technicians/{id}', [AdminTechnicianController::class, 'show']);
     Route::post('/technicians/{id}/approve', [AdminTechnicianController::class, 'approve']);
     Route::post('/technicians/{id}/reject', [AdminTechnicianController::class, 'reject']);
+    Route::get('/documents/{id}/download', [AdminTechnicianController::class, 'downloadDocument']);
     Route::post('/documents/{id}/approve', [AdminTechnicianController::class, 'approveDocument']);
     Route::post('/documents/{id}/reject', [AdminTechnicianController::class, 'rejectDocument']);
     Route::post('/withdrawals/{id}/process', [AdminTechnicianController::class, 'processWithdrawal']);
