@@ -17,17 +17,35 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::table('reviews', function (Blueprint $table) {
-            // Add type column if it doesn't exist yet
-            if (!Schema::hasColumn('reviews', 'type')) {
+        // Add type column if it doesn't exist yet
+        if (!Schema::hasColumn('reviews', 'type')) {
+            Schema::table('reviews', function (Blueprint $table) {
                 $table->enum('type', ['customer_to_technician', 'technician_to_customer'])
                     ->default('customer_to_technician')
                     ->after('comment');
+            });
+        }
+
+        Schema::table('reviews', function (Blueprint $table) {
+            $indexes = Schema::getIndexes('reviews');
+            
+            $hasUniqueJobId = collect($indexes)->contains(function ($index) {
+                return $index['name'] === 'reviews_job_id_unique';
+            });
+
+            $hasCompositeUnique = collect($indexes)->contains(function ($index) {
+                return $index['name'] === 'reviews_job_id_type_unique';
+            });
+
+            // Create new composite unique constraint first so foreign key remains supported in MySQL
+            if (!$hasCompositeUnique) {
+                $table->unique(['job_id', 'type']);
             }
 
-            // Re-add the foreign key and new composite unique
-            $table->foreign('job_id')->references('id')->on('jobs')->onDelete('cascade');
-            $table->unique(['job_id', 'type']);
+            // Drop the old single unique constraint
+            if ($hasUniqueJobId) {
+                $table->dropUnique('reviews_job_id_unique');
+            }
         });
     }
 
@@ -37,12 +55,27 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::table('reviews', function (Blueprint $table) {
-            $table->dropForeign(['job_id']);
-            $table->dropUnique(['job_id', 'type']);
-            $table->dropColumn('type');
+            $indexes = Schema::getIndexes('reviews');
+            
+            $hasCompositeUnique = collect($indexes)->contains(function ($index) {
+                return $index['name'] === 'reviews_job_id_type_unique';
+            });
 
-            $table->foreign('job_id')->references('id')->on('jobs')->onDelete('cascade');
-            $table->unique('job_id');
+            $hasUniqueJobId = collect($indexes)->contains(function ($index) {
+                return $index['name'] === 'reviews_job_id_unique';
+            });
+
+            if (!$hasUniqueJobId) {
+                $table->unique('job_id');
+            }
+
+            if ($hasCompositeUnique) {
+                $table->dropUnique(['job_id', 'type']);
+            }
+
+            if (Schema::hasColumn('reviews', 'type')) {
+                $table->dropColumn('type');
+            }
         });
     }
 };
