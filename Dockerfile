@@ -3,6 +3,10 @@ FROM php:8.2-apache
 # Enable Apache mod_rewrite for Laravel routing
 RUN a2enmod rewrite
 
+# Ensure only mpm_prefork is loaded to avoid "More than one MPM loaded" error
+RUN a2dismod mpm_event mpm_worker || true
+RUN a2enmod mpm_prefork || true
+
 # Install system dependencies & PHP extensions
 RUN apt-get update && apt-get install -y \
     git \
