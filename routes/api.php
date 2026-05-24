@@ -117,11 +117,15 @@ Route::middleware(['auth:sanctum', 'active', 'role:admin'])->prefix('admin')->gr
 
 
 
-// Technician routes (authenticated technicians)
-Route::middleware(['auth:sanctum', 'role:technician', 'verified.technician', 'active'])->prefix('technician')->group(function () {
+// Technician document routes (allowed BEFORE verification so techs can upload docs for review)
+Route::middleware(['auth:sanctum', 'role:technician', 'active'])->prefix('technician')->group(function () {
     Route::get('/documents', [DocumentController::class, 'index']);
     Route::post('/documents', [DocumentController::class, 'store']);
     Route::delete('/documents/{id}', [DocumentController::class, 'destroy']);
+});
+
+// Technician routes (requires verified/approved technician)
+Route::middleware(['auth:sanctum', 'role:technician', 'verified.technician', 'active'])->prefix('technician')->group(function () {
     Route::get('/requests', [TechnicianRequestController::class, 'index']);
     Route::get('/requests/{id}', [TechnicianRequestController::class, 'show']);
     Route::get('/offers', [OfferController::class, 'index']);

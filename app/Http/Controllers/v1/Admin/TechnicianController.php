@@ -14,7 +14,8 @@ class TechnicianController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Technician::with(['user', 'category', 'city']);
+        $query = Technician::with(['user', 'category', 'city'])
+            ->whereHas('user'); // Exclude technicians whose user was soft-deleted
 
         // Filter by verification status
         if ($request->has('status')) {
@@ -33,11 +34,11 @@ class TechnicianController extends Controller
             'data' => collect($technicians->items())->map(fn($tech) => [
                 'id' => $tech->id,
                 'user_id' => $tech->user_id,
-                'name' => $tech->user->name,
-                'phone' => $tech->user->phone,
-                'email' => $tech->user->email,
-                'category' => $tech->category->name ?? null,
-                'city' => $tech->city->name ?? null,
+                'name' => $tech->user?->name,
+                'phone' => $tech->user?->phone,
+                'email' => $tech->user?->email,
+                'category' => $tech->category?->name ?? null,
+                'city' => $tech->city?->name ?? null,
                 'years_of_experience' => $tech->years_of_experience,
                 'verification_status' => $tech->verification_status,
                 'documents_count' => $tech->documents()->count(),
@@ -64,11 +65,11 @@ class TechnicianController extends Controller
             'data' => [
                 'id' => $technician->id,
                 'user_id' => $technician->user_id,
-                'name' => $technician->user->name,
-                'phone' => $technician->user->phone,
-                'email' => $technician->user->email,
-                'category' => $technician->category->name ?? null,
-                'city' => $technician->city->name ?? null,
+                'name' => $technician->user?->name,
+                'phone' => $technician->user?->phone,
+                'email' => $technician->user?->email,
+                'category' => $technician->category?->name ?? null,
+                'city' => $technician->city?->name ?? null,
                 'bio' => $technician->bio,
                 'years_of_experience' => $technician->years_of_experience,
                 'verification_status' => $technician->verification_status,
