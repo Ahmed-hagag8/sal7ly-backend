@@ -1,11 +1,12 @@
 FROM php:8.2-apache
 
+# Fix MPM conflict: remove ALL mpm symlinks then enable ONLY prefork
+RUN rm -f /etc/apache2/mods-enabled/mpm_*.conf /etc/apache2/mods-enabled/mpm_*.load \
+    && ln -sf /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf \
+    && ln -sf /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.load
+
 # Enable Apache mod_rewrite for Laravel routing
 RUN a2enmod rewrite
-
-# Ensure only mpm_prefork is loaded to avoid "More than one MPM loaded" error
-RUN a2dismod mpm_event mpm_worker || true
-RUN a2enmod mpm_prefork || true
 
 # Install system dependencies & PHP extensions
 RUN apt-get update && apt-get install -y \
@@ -47,4 +48,3 @@ EXPOSE 80
 
 # Run entrypoint script
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-
