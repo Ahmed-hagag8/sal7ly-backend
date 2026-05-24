@@ -15,8 +15,8 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-echo "Wiping database and re-running migrations + seeders..."
-php artisan migrate:fresh --seed --force
+echo "Running migrations..."
+php artisan migrate --force
 
 # Create storage symlink for file serving
 php artisan storage:link || true
