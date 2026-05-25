@@ -326,6 +326,7 @@ class DashboardController extends Controller
     public function topTechnicians()
     {
         $technicians = Technician::with('user:id,name')
+            ->whereHas('user')
             ->orderByDesc('average_rating')
             ->orderByDesc('total_jobs_completed')
             ->take(10)
@@ -333,7 +334,7 @@ class DashboardController extends Controller
         return response()->json([
             'success' => true,
             'data' => $technicians->map(fn($t) => [
-                'name' => $t->user->name,
+                'name' => $t->user->name ?? 'Unknown',
                 'rating' => $t->average_rating,
                 'requests' => $t->total_jobs_completed,
             ]),
