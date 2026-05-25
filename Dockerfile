@@ -5,8 +5,9 @@ RUN rm -f /etc/apache2/mods-enabled/mpm_*.conf /etc/apache2/mods-enabled/mpm_*.l
     && ln -sf /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf \
     && ln -sf /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.load
 
-# Enable Apache mod_rewrite for Laravel routing
-RUN a2enmod rewrite
+# Enable Apache mod_rewrite for Laravel routing and suppress ServerName warning
+RUN a2enmod rewrite \
+    && echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
 # Install system dependencies & PHP extensions
 RUN apt-get update && apt-get install -y \
