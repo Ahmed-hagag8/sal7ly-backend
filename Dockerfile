@@ -27,6 +27,7 @@ WORKDIR /var/www/html
 
 # Configure Apache virtual host to point to Laravel's public directory with AllowOverride
 RUN echo '<VirtualHost *:80>\n\
+    ServerName localhost\n\
     DocumentRoot /var/www/html/public\n\
     <Directory /var/www/html/public>\n\
         AllowOverride All\n\
