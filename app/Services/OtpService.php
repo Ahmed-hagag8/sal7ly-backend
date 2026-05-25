@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\OtpMail;
@@ -139,9 +140,48 @@ class OtpService
         $expiryMinutes = config('services.otp.expiry_minutes', 10);
 
         match (config('services.otp.email_driver', 'log')) {
-            'smtp' => Mail::to($email)->send(new OtpMail($code, $userName, $expiryMinutes)),
-            default => Log::info("📧 Email OTP for [{$email}]: {$code}"),
+            'smtp'      => Mail::to($email)->send(new OtpMail($code, $userName, $expiryMinutes)),
+            'brevo_api' => $this->sendViaBrevoApi($email, $code, $userName, $expiryMinutes),
+            default     => Log::info("📧 Email OTP for [{$email}]: {$code}"),
         };
+    }
+
+    /**
+     * Send email OTP via Brevo HTTP API (bypasses SMTP port blocks)
+     */
+    protected function sendViaBrevoApi(string $email, string $code, string $userName, int $expiryMinutes): void
+    {
+        $apiKey = config('services.brevo.api_key');
+        $fromEmail = config('mail.from.address', 'noreply@sal7ly.com');
+        $fromName  = config('mail.from.name', 'Sal7ly');
+
+        // Render the Blade email template to HTML
+        $htmlContent = view('emails.otp', [
+            'code'          => $code,
+            'userName'      => $userName,
+            'expiryMinutes' => $expiryMinutes,
+        ])->render();
+
+        $response = Http::withHeaders([
+            'api-key'      => $apiKey,
+            'Content-Type' => 'application/json',
+            'Accept'       => 'application/json',
+        ])->post('https://api.brevo.com/v3/smtp/email', [
+            'sender'      => ['name' => $fromName, 'email' => $fromEmail],
+            'to'          => [['email' => $email, 'name' => $userName]],
+            'subject'     => 'Your Sal7ly Verification Code',
+            'htmlContent' => $htmlContent,
+        ]);
+
+        if ($response->failed()) {
+            Log::error('Brevo API email failed', [
+                'status' => $response->status(),
+                'body'   => $response->body(),
+            ]);
+            throw new \RuntimeException('Failed to send OTP email via Brevo API: ' . $response->body());
+        }
+
+        Log::info("📧 Email OTP sent via Brevo API to [{$email}]");
     }
 
     /**
