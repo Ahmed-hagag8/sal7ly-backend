@@ -197,8 +197,21 @@ class OtpService
             throw new \RuntimeException('Ultramsg credentials are not configured.');
         }
 
-        // Ensure the phone number has '+'
-        $formattedPhone = str_starts_with($phone, '+') ? $phone : '+' . $phone;
+        // Format phone number to international format for Ultramsg
+        $formattedPhone = $phone;
+        
+        // If it's a local Egyptian number starting with 01 (e.g. 01018900258), convert to +20...
+        if (preg_match('/^0(1[0125][0-9]{8})$/', $phone, $matches)) {
+            $formattedPhone = '+20' . $matches[1];
+        } 
+        // If it starts with 20 and is an Egyptian number but missing the '+', add it
+        elseif (preg_match('/^201[0125][0-9]{8}$/', $phone)) {
+            $formattedPhone = '+' . $phone;
+        } 
+        // Otherwise, just ensure it has a '+'
+        elseif (!str_starts_with($phone, '+')) {
+            $formattedPhone = '+' . ltrim($phone, '0');
+        }
 
         $response = Http::asForm()->post("https://api.ultramsg.com/{$instanceId}/messages/chat", [
             'token'    => $token,
