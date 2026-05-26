@@ -18,6 +18,12 @@ php artisan view:cache
 echo "Running migrations..."
 php artisan migrate --force
 
+# Ensure persistent storage directories exist (Railway Volume)
+echo "Preparing storage directories..."
+mkdir -p /var/www/html/storage/app/public/profile_images
+mkdir -p /var/www/html/storage/app/technician_documents
+chown -R www-data:www-data /var/www/html/storage/app
+
 # Create storage symlink for file serving
 php artisan storage:link || true
 
