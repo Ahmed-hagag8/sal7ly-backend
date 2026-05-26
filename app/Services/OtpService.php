@@ -197,13 +197,14 @@ class OtpService
             throw new \RuntimeException('Ultramsg credentials are not configured.');
         }
 
-        // Ultramsg expects the phone number without '+'
-        $formattedPhone = ltrim($phone, '+');
+        // Ensure the phone number has '+'
+        $formattedPhone = str_starts_with($phone, '+') ? $phone : '+' . $phone;
 
         $response = Http::asForm()->post("https://api.ultramsg.com/{$instanceId}/messages/chat", [
-            'token' => $token,
-            'to'    => $formattedPhone,
-            'body'  => "Your Sal7ly verification code is: *{$code}*. Valid for " . config('services.otp.expiry_minutes', 10) . " minutes.",
+            'token'    => $token,
+            'to'       => $formattedPhone,
+            'body'     => "Your Sal7ly verification code is: *{$code}*. Valid for " . config('services.otp.expiry_minutes', 10) . " minutes.",
+            'priority' => 10,
         ]);
 
         if ($response->failed()) {
