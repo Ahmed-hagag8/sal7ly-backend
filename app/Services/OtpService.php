@@ -122,13 +122,13 @@ class OtpService
     }
 
     /**
-     * Send phone OTP via configured driver (log for dev, twilio for production)
+     * Send phone OTP via configured driver (log for dev, ultramsg for production)
      */
     protected function dispatchPhone(string $phone, string $code): void
     {
         match (config('services.otp.driver')) {
-            'twilio' => $this->sendViaTwilio($phone, $code),
-            default  => Log::info("📱 OTP for [{$phone}]: {$code}"),
+            'ultramsg' => $this->sendViaUltramsg($phone, $code),
+            default    => Log::info("📱 OTP for [{$phone}]: {$code}"),
         };
     }
 
@@ -185,12 +185,36 @@ class OtpService
     }
 
     /**
-     * Send via Twilio (implement when ready for production)
+     * Send OTP via Ultramsg (WhatsApp Web API wrapper)
      */
-    protected function sendViaTwilio(string $phone, string $code): void
+    protected function sendViaUltramsg(string $phone, string $code): void
     {
-        // TODO: Implement when ready for production
-        // Twilio::message($phone, "Your Sal7ly code is: {$code}");
-        Log::info("📱 OTP for [{$phone}] (Twilio placeholder): {$code}");
+        $instanceId = config('services.ultramsg.instance_id');
+        $token      = config('services.ultramsg.token');
+
+        if (!$instanceId || !$token) {
+            Log::error('Ultramsg credentials not configured. Check ULTRAMSG_INSTANCE_ID and ULTRAMSG_TOKEN in .env');
+            throw new \RuntimeException('Ultramsg credentials are not configured.');
+        }
+
+        // Ultramsg expects the phone number without '+'
+        $formattedPhone = ltrim($phone, '+');
+
+        $response = Http::asForm()->post("https://api.ultramsg.com/{$instanceId}/messages/chat", [
+            'token' => $token,
+            'to'    => $formattedPhone,
+            'body'  => "Your Sal7ly verification code is: *{$code}*. Valid for " . config('services.otp.expiry_minutes', 10) . " minutes.",
+        ]);
+
+        if ($response->failed()) {
+            Log::error('Ultramsg WhatsApp failed', [
+                'phone'  => $phone,
+                'status' => $response->status(),
+                'body'   => $response->body(),
+            ]);
+            throw new \RuntimeException('Failed to send OTP via Ultramsg: ' . $response->body());
+        }
+
+        Log::info("💬 OTP sent via Ultramsg to [{$phone}]");
     }
 }

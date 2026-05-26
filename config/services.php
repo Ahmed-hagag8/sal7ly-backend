@@ -45,5 +45,9 @@ return [
         'api_key' => env('BREVO_API_KEY'),
     ],
 
+    'ultramsg' => [
+        'instance_id' => env('ULTRAMSG_INSTANCE_ID'),
+        'token'       => env('ULTRAMSG_TOKEN'),
+    ],
 
 ];
