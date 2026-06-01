@@ -499,6 +499,14 @@ class DashboardController extends Controller
             ], 403);
         }
 
+        // SEC-12: Prevent admin from disabling other admins
+        if ($user->role === 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot disable another admin account',
+            ], 403);
+        }
+
         $user->is_active = !$user->is_active;
         $user->save();
 
@@ -532,6 +540,14 @@ class DashboardController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'You cannot block your own account',
+            ], 403);
+        }
+
+        // SEC-12: Prevent admin from blocking other admins
+        if ($user->role === 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot block another admin account',
             ], 403);
         }
 

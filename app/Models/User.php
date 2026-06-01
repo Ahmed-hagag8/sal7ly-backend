@@ -13,13 +13,16 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
+    /**
+     * SEC-13: 'role' and 'is_active' are intentionally excluded from $fillable
+     * to prevent mass-assignment privilege escalation. They are set explicitly
+     * in RegisterController and admin endpoints.
+     */
     protected $fillable = [
         'name',
         'email',
         'phone',
         'password',
-        'role',
-        'is_active',
         'profile_image',
     ];
     protected $hidden = [

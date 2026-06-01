@@ -25,12 +25,12 @@ use App\Http\Controllers\v1\Technician\LocationController;
 
 
 // PUBLIC ROUTES
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/register/customer', [RegisterController::class, 'customer']);
-Route::post('/register/technician', [RegisterController::class, 'technician']);
-Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
+Route::post('/register/customer', [RegisterController::class, 'customer'])->middleware('throttle:register');
+Route::post('/register/technician', [RegisterController::class, 'technician'])->middleware('throttle:register');
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:forgot-password');
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
-Route::post('/forgot-password-email', [AuthController::class, 'forgotPasswordEmail']);
+Route::post('/forgot-password-email', [AuthController::class, 'forgotPasswordEmail'])->middleware('throttle:forgot-password');
 Route::post('/reset-password-email', [AuthController::class, 'resetPasswordEmail']);
 Route::get('/categories', [ServiceCategoryController::class, 'index']);
 Route::get('/categories/{id}', [ServiceCategoryController::class, 'show']);
@@ -51,9 +51,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
-    Route::post('/send-otp', [AuthController::class, 'sendOtp']);
+    Route::post('/send-otp', [AuthController::class, 'sendOtp'])->middleware('throttle:otp');
     Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
-    Route::post('/send-email-otp', [AuthController::class, 'sendEmailOtp']);
+    Route::post('/send-email-otp', [AuthController::class, 'sendEmailOtp'])->middleware('throttle:otp');
     Route::post('/verify-email-otp', [AuthController::class, 'verifyEmailOtp']);
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::put('/profile', [ProfileController::class, 'update']);

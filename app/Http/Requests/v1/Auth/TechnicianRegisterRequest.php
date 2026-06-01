@@ -17,7 +17,7 @@ class TechnicianRegisterRequest extends FormRequest
             'name' => 'required|string|max:255',
             'phone' => 'required|string|unique:users,phone|regex:/^01[0125][0-9]{8}$/',
             'email' => 'nullable|email|unique:users,email',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => 'required|string|min:8|confirmed',
             'city_id' => 'required|exists:cities,id',
             'service_category_id' => 'required|exists:service_categories,id',
             'years_of_experience' => 'nullable|integer|min:0|max:50',

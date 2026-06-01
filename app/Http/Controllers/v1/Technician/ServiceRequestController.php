@@ -69,12 +69,22 @@ class ServiceRequestController extends Controller
 
     /**
      * View request details
+     *
+     * SEC-08: Verifies the request is in the technician's city and service
+     * category before showing details. Without this, any technician could
+     * view any request by ID, leaking customer PII.
      */
     public function show(Request $request, $id)
     {
         $technician = $request->user()->technician;
 
+        // Get service IDs in technician's category
+        $serviceIds = \App\Models\Service::where('service_category_id', $technician->service_category_id)
+            ->pluck('id');
+
         $serviceRequest = ServiceRequest::with(['service', 'city', 'customer.user', 'images'])
+            ->where('city_id', $technician->city_id)
+            ->whereIn('service_id', $serviceIds)
             ->findOrFail($id);
 
         // Check if technician already made offer

@@ -17,7 +17,7 @@ class CustomerRegisterRequest extends FormRequest
             'name' => 'required|string|max:255',
             'phone' => 'required|string|unique:users,phone|regex:/^01[0125][0-9]{8}$/',
             'email' => 'nullable|email|unique:users,email',
-            'password' => 'required|string|min:6|confirmed',
+            'password' => 'required|string|min:8|confirmed',
             'city_id' => 'required|exists:cities,id',
             'address' => 'nullable|string|max:500',
             'latitude' => 'nullable|numeric|between:-90,90',

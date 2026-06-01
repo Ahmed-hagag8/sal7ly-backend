@@ -17,7 +17,7 @@ class OfferController extends Controller
     {
         $request->validate([
             'offered_price' => 'required|numeric|min:1',
-            'estimated_duration' => 'nullable|string|max:50',
+            'estimated_duration' => 'nullable|integer|min:1',
             'notes' => 'nullable|string|max:500',
         ]);
 

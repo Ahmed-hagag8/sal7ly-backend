@@ -4,6 +4,7 @@ namespace App\Http\Controllers\v1\Technician;
 
 use App\Http\Controllers\Controller;
 use App\Models\Withdrawal;
+use App\Services\WalletService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -11,6 +12,9 @@ class WithdrawalController extends Controller
 {
     /**
      * Request withdrawal
+     *
+     * SCALE-04: Holds funds in pending_balance on request so the
+     * technician cannot spend the same money while awaiting approval.
      */
     public function store(Request $request)
     {
@@ -41,6 +45,9 @@ class WithdrawalController extends Controller
             ], 400);
         }
 
+        // Hold the funds so they can't be spent while awaiting approval
+        app(WalletService::class)->holdFunds($wallet, (float) $request->amount);
+
         $withdrawal = Withdrawal::create([
             'withdrawal_number' => 'WD-' . strtoupper(Str::random(8)),
             'user_id' => $user->id,
@@ -59,6 +66,7 @@ class WithdrawalController extends Controller
             ],
         ], 201);
     }
+
 
     /**
      * List my withdrawals

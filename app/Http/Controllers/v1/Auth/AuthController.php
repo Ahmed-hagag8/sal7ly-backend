@@ -125,10 +125,9 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Reset code sent to your phone',
-            'data' => array_filter([
-                'code' => config('app.debug') ? $code : null,
+            'data' => [
                 'expires_in' => config('services.otp.expiry_minutes', 10) . ' minutes',
-            ]),
+            ],
         ]);
     }
 
@@ -173,10 +172,9 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'OTP sent to your phone',
-            'data' => array_filter([
-                'code' => config('app.debug') ? $code : null,
+            'data' => [
                 'expires_in' => config('services.otp.expiry_minutes', 10) . ' minutes',
-            ]),
+            ],
         ]);
     }
 
@@ -236,11 +234,10 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'OTP sent to your email',
-            'data' => array_filter([
+            'data' => [
                 'email' => $user->email,
-                'code' => config('app.debug') ? $code : null,
                 'expires_in' => config('services.otp.expiry_minutes', 10) . ' minutes',
-            ]),
+            ],
         ]);
     }
 
@@ -294,10 +291,9 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Reset code sent to your email',
-            'data' => array_filter([
-                'code' => config('app.debug') ? $code : null,
+            'data' => [
                 'expires_in' => config('services.otp.expiry_minutes', 10) . ' minutes',
-            ]),
+            ],
         ]);
     }
 

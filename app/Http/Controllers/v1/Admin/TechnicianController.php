@@ -180,6 +180,10 @@ class TechnicianController extends Controller
 
     /**
      * Process withdrawal request
+     *
+     * SCALE-03: Wrapped in DB::transaction so wallet debit + status update are atomic.
+     * SCALE-04: Uses settleHeldFunds/releaseFunds since funds were already held
+     *           in pending_balance when the technician requested the withdrawal.
      */
     public function processWithdrawal(Request $request, $id)
     {
@@ -194,26 +198,35 @@ class TechnicianController extends Controller
                 'message' => 'Withdrawal already processed',
             ], 400);
         }
-        if ($request->action === 'approve') {
+
+        $walletService = app(\App\Services\WalletService::class);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request, $withdrawal, $walletService) {
             $wallet = $withdrawal->user->wallet;
 
-            app(\App\Services\WalletService::class)->debit(
-                $wallet,
-                (float) $withdrawal->amount,
-                "Withdrawal #{$withdrawal->withdrawal_number}"
-            );
-            $withdrawal->update([
-                'status' => 'approved',
-                'processed_by' => $request->user()->id,
-                'processed_at' => now(),
-            ]);
-        } else {
-            $withdrawal->update([
-                'status' => 'rejected',
-                'processed_by' => $request->user()->id,
-                'processed_at' => now(),
-            ]);
-        }
+            if ($request->action === 'approve') {
+                // Funds were already held in pending_balance — settle them now
+                $walletService->settleHeldFunds(
+                    $wallet,
+                    (float) $withdrawal->amount,
+                    "Withdrawal #{$withdrawal->withdrawal_number}"
+                );
+                $withdrawal->update([
+                    'status' => 'approved',
+                    'processed_by' => $request->user()->id,
+                    'processed_at' => now(),
+                ]);
+            } else {
+                // Release held funds back to available balance
+                $walletService->releaseFunds($wallet, (float) $withdrawal->amount);
+                $withdrawal->update([
+                    'status' => 'rejected',
+                    'processed_by' => $request->user()->id,
+                    'processed_at' => now(),
+                ]);
+            }
+        });
+
         return response()->json([
             'success' => true,
             'message' => 'Withdrawal ' . $request->action . 'd',

@@ -48,7 +48,7 @@ return [
     |
     */
 
-    'expiration' => null,
+    'expiration' => 10080, // 7 days (in minutes) — SEC-05: prevent permanent session hijacking
 
     /*
     |--------------------------------------------------------------------------

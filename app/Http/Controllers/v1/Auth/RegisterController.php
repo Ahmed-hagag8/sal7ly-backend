@@ -30,15 +30,16 @@ class RegisterController extends Controller
         // Use DB transaction to ensure all or nothing
         $result = DB::transaction(function () use ($request) {
 
-            // Step 1: Create user
-            $user = User::create([
+            // Step 1: Create user (role and is_active set explicitly, not via mass-assignment)
+            $user = new User([
                 'name' => $request->name,
                 'phone' => $request->phone,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'role' => 'customer',
-                'is_active' => true,
             ]);
+            $user->role = 'customer';
+            $user->is_active = true;
+            $user->save();
 
             // Step 2: Create customer profile
             Customer::create([
@@ -98,15 +99,16 @@ class RegisterController extends Controller
     {
         $result = DB::transaction(function () use ($request) {
 
-            // Step 1: Create user
-            $user = User::create([
+            // Step 1: Create user (role and is_active set explicitly, not via mass-assignment)
+            $user = new User([
                 'name' => $request->name,
                 'phone' => $request->phone,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'role' => 'technician',
-                'is_active' => true,
             ]);
+            $user->role = 'technician';
+            $user->is_active = true;
+            $user->save();
 
             // Step 2: Create technician profile (pending verification)
             Technician::create([

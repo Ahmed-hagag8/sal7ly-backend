@@ -163,12 +163,16 @@ class ProfileController extends Controller
 
     /**
      * Change email and password
+     *
+     * SEC-06: Requires current_password verification to prevent
+     * account takeover via stolen token.
      */
     public function changeCredentials(Request $request)
     {
         $user = $request->user();
 
         $validated = $request->validate([
+            'current_password' => 'required|string',
             'email' => [
                 'required',
                 'email',
@@ -176,6 +180,14 @@ class ProfileController extends Controller
             ],
             'password' => 'required|string|min:8|confirmed',
         ]);
+
+        // Verify current password before allowing changes
+        if (!Hash::check($validated['current_password'], $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Current password is incorrect',
+            ], 422);
+        }
 
         $user->email = $validated['email'];
         $user->password = Hash::make($validated['password']);
