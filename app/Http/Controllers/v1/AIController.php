@@ -101,11 +101,20 @@ class AIController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'AI service error',
+                'debug' => [
+                    'ai_status' => $response->status(),
+                    'ai_body' => $response->body(),
+                    'ai_url' => $this->baseUrl . '/detect-image',
+                ],
             ], 502);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'AI service unavailable',
+                'debug' => [
+                    'exception' => $e->getMessage(),
+                    'ai_url' => $this->baseUrl . '/detect-image',
+                ],
             ], 503);
         }
     }
