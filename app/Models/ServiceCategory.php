@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class ServiceCategory extends Model
 {
     use HasFactory;
-    protected $fillable = ['name', 'icon', 'description', 'is_active'];
+    protected $fillable = ['name', 'name_ar', 'icon', 'description', 'is_active'];
 
     protected $casts = ['is_active' => 'boolean'];
     public function services()
