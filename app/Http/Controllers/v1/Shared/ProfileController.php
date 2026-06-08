@@ -21,7 +21,13 @@ class ProfileController extends Controller
      */
     public function show(Request $request)
     {
-        $user = $request->user();
+        // PERF-12: Eager-load relations to prevent hidden N+1 queries
+        $user = $request->user()->load([
+            'customer.city',
+            'technician.category',
+            'technician.city',
+            'wallet',
+        ]);
 
         // Base user data
         $data = [

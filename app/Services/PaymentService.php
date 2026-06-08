@@ -6,6 +6,7 @@ use App\Models\Job;
 use App\Models\Payment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Helpers\UniqueNumberGenerator;
 
 class PaymentService
 {
@@ -33,7 +34,7 @@ class PaymentService
 
             // Create payment record
             $payment = Payment::create([
-                'payment_number' => 'PAY-' . strtoupper(Str::random(8)),
+                'payment_number' => UniqueNumberGenerator::generate('PAY-', 'payments', 'payment_number'),
                 'job_id' => $job->id,
                 'customer_id' => $job->customer_id,
                 'technician_id' => $job->technician_id,

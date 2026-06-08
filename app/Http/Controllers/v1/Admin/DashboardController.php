@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\{User, Technician, Customer, Job, ServiceRequest, Payment, Withdrawal, Review};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
@@ -14,75 +15,106 @@ class DashboardController extends Controller
      */
     public function stats()
     {
-        // Overview cards
-        $totalRequestsThisMonth = ServiceRequest::whereMonth('created_at', now()->month)
-            ->whereYear('created_at', now()->year)->count();
-        $totalRequestsLastMonth = ServiceRequest::whereMonth('created_at', now()->subMonth()->month)
-            ->whereYear('created_at', now()->subMonth()->year)->count();
-        $requestsGrowth = $totalRequestsLastMonth > 0
-            ? round((($totalRequestsThisMonth - $totalRequestsLastMonth) / $totalRequestsLastMonth) * 100, 1)
-            : 0;
+        return Cache::remember('admin_dashboard_stats', 60, function () {
+            // PERF-02: Combine ServiceRequest counts into a single query (was 9 separate queries)
+            $requestStats = ServiceRequest::selectRaw("
+                COUNT(CASE WHEN MONTH(created_at) = ? AND YEAR(created_at) = ? THEN 1 END) as this_month,
+                COUNT(CASE WHEN MONTH(created_at) = ? AND YEAR(created_at) = ? THEN 1 END) as last_month,
+                COUNT(CASE WHEN MONTH(created_at) = ? AND YEAR(created_at) = ? AND status = 'cancelled' THEN 1 END) as cancelled_this_month,
+                COUNT(CASE WHEN MONTH(created_at) = ? AND YEAR(created_at) = ? AND status = 'cancelled' THEN 1 END) as cancelled_last_month,
+                COUNT(*) as total,
+                COUNT(CASE WHEN status IN ('pending','open') THEN 1 END) as waiting,
+                COUNT(CASE WHEN status IN ('assigned','in_progress') THEN 1 END) as in_progress,
+                COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed,
+                COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled
+            ", [
+                now()->month, now()->year,
+                now()->subMonth()->month, now()->subMonth()->year,
+                now()->month, now()->year,
+                now()->subMonth()->month, now()->subMonth()->year,
+            ])->first();
 
-        $newCustomers = Customer::whereMonth('created_at', now()->month)->count();
-        $newCustomersLastMonth = Customer::whereMonth('created_at', now()->subMonth()->month)->count();
-        $customersGrowth = $newCustomersLastMonth > 0
-            ? round((($newCustomers - $newCustomersLastMonth) / $newCustomersLastMonth) * 100, 1)
-            : 0;
+            $requestsGrowth = $requestStats->last_month > 0
+                ? round((($requestStats->this_month - $requestStats->last_month) / $requestStats->last_month) * 100, 1)
+                : 0;
 
-        $activeTechniciansToday = Job::whereDate('updated_at', today())
-            ->whereIn('status', ['in_progress', 'completed'])
-            ->distinct('technician_id')->count('technician_id');
+            $cancellationRate = $requestStats->this_month > 0
+                ? round(($requestStats->cancelled_this_month / $requestStats->this_month) * 100, 1)
+                : 0;
+            $cancellationRateLastMonth = $requestStats->last_month > 0
+                ? round(($requestStats->cancelled_last_month / $requestStats->last_month) * 100, 1)
+                : 0;
+            $cancellationChange = round($cancellationRate - $cancellationRateLastMonth, 1);
 
-        $cancelledThisMonth = ServiceRequest::whereMonth('created_at', now()->month)
-            ->where('status', 'cancelled')->count();
-        $cancellationRate = $totalRequestsThisMonth > 0
-            ? round(($cancelledThisMonth / $totalRequestsThisMonth) * 100, 1)
-            : 0;
-        $cancelledLastMonth = ServiceRequest::whereMonth('created_at', now()->subMonth()->month)
-            ->where('status', 'cancelled')->count();
-        $cancellationRateLastMonth = $totalRequestsLastMonth > 0
-            ? round(($cancelledLastMonth / $totalRequestsLastMonth) * 100, 1)
-            : 0;
-        $cancellationChange = round($cancellationRate - $cancellationRateLastMonth, 1);
+            // Customer growth (2 queries → 1)
+            $customerStats = Customer::selectRaw("
+                COUNT(CASE WHEN MONTH(created_at) = ? THEN 1 END) as this_month,
+                COUNT(CASE WHEN MONTH(created_at) = ? THEN 1 END) as last_month
+            ", [now()->month, now()->subMonth()->month])->first();
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'overview' => [
-                    'total_requests_this_month' => $totalRequestsThisMonth,
-                    'requests_growth' => $requestsGrowth,
-                    'new_customers' => $newCustomers,
-                    'customers_growth' => $customersGrowth,
-                    'active_technicians_today' => $activeTechniciansToday,
-                    'cancellation_rate' => $cancellationRate,
-                    'cancellation_change' => $cancellationChange,
+            $customersGrowth = $customerStats->last_month > 0
+                ? round((($customerStats->this_month - $customerStats->last_month) / $customerStats->last_month) * 100, 1)
+                : 0;
+
+            $activeTechniciansToday = Job::whereDate('updated_at', today())
+                ->whereIn('status', ['in_progress', 'completed'])
+                ->distinct('technician_id')->count('technician_id');
+
+            // User/Technician counts (4 queries → 2)
+            $userStats = User::selectRaw("
+                COUNT(*) as total,
+                COUNT(CASE WHEN role = 'customer' THEN 1 END) as customers,
+                COUNT(CASE WHEN role = 'technician' THEN 1 END) as technicians
+            ")->first();
+            $pendingTechnicians = Technician::where('verification_status', 'pending')->count();
+
+            // Job counts (4 queries → 1)
+            $jobStats = Job::selectRaw("
+                COUNT(*) as total,
+                COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed,
+                COUNT(CASE WHEN status = 'in_progress' THEN 1 END) as in_progress,
+                COUNT(CASE WHEN status = 'scheduled' THEN 1 END) as scheduled
+            ")->first();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'overview' => [
+                        'total_requests_this_month' => $requestStats->this_month,
+                        'requests_growth' => $requestsGrowth,
+                        'new_customers' => $customerStats->this_month,
+                        'customers_growth' => $customersGrowth,
+                        'active_technicians_today' => $activeTechniciansToday,
+                        'cancellation_rate' => $cancellationRate,
+                        'cancellation_change' => $cancellationChange,
+                    ],
+                    'users' => [
+                        'total' => $userStats->total,
+                        'customers' => $userStats->customers,
+                        'technicians' => $userStats->technicians,
+                        'pending_technicians' => $pendingTechnicians,
+                    ],
+                    'jobs' => [
+                        'total' => $jobStats->total,
+                        'completed' => $jobStats->completed,
+                        'in_progress' => $jobStats->in_progress,
+                        'scheduled' => $jobStats->scheduled,
+                    ],
+                    'requests' => [
+                        'total' => $requestStats->total,
+                        'waiting' => $requestStats->waiting,
+                        'in_progress' => $requestStats->in_progress,
+                        'completed' => $requestStats->completed,
+                        'cancelled' => $requestStats->cancelled,
+                    ],
+                    'financials' => [
+                        'total_payments' => Payment::sum('amount'),
+                        'total_commission' => Payment::sum('commission_amount'),
+                        'pending_withdrawals' => Withdrawal::where('status', 'pending')->sum('amount'),
+                    ],
                 ],
-                'users' => [
-                    'total' => User::count(),
-                    'customers' => Customer::count(),
-                    'technicians' => Technician::count(),
-                    'pending_technicians' => Technician::where('verification_status', 'pending')->count(),
-                ],
-                'jobs' => [
-                    'total' => Job::count(),
-                    'completed' => Job::where('status', 'completed')->count(),
-                    'in_progress' => Job::where('status', 'in_progress')->count(),
-                    'scheduled' => Job::where('status', 'scheduled')->count(),
-                ],
-                'requests' => [
-                    'total' => ServiceRequest::count(),
-                    'waiting' => ServiceRequest::whereIn('status', ['pending', 'open'])->count(),
-                    'in_progress' => ServiceRequest::whereIn('status', ['assigned', 'in_progress'])->count(),
-                    'completed' => ServiceRequest::where('status', 'completed')->count(),
-                    'cancelled' => ServiceRequest::where('status', 'cancelled')->count(),
-                ],
-                'financials' => [
-                    'total_payments' => Payment::sum('amount'),
-                    'total_commission' => Payment::sum('commission_amount'),
-                    'pending_withdrawals' => Withdrawal::where('status', 'pending')->sum('amount'),
-                ],
-            ],
-        ]);
+            ]);
+        });
     }
 
     /**
@@ -241,7 +273,10 @@ class DashboardController extends Controller
      */
     public function wallets(Request $request)
     {
-        $query = \App\Models\Wallet::with(['user', 'user.customer', 'user.technician']);
+        $query = \App\Models\Wallet::with([
+            'user', 'user.customer', 'user.technician',
+            'transactions' => fn($q) => $q->latest()->limit(1),
+        ]);
 
         if ($request->has('role')) {
             $query->whereHas('user', fn($q) => $q->where('role', $request->role));
@@ -260,7 +295,7 @@ class DashboardController extends Controller
                 'on_hold' => 0,
                 'earnings' => $w->total_earned,
                 'last_transaction' => $w->updated_at->format('Y-m-d'),
-                'type' => $w->transactions()->latest()->first()?->type ?? 'N/A',
+                'type' => $w->transactions->first()?->type ?? 'N/A',
                 'status' => 'active',
             ]),
             'meta' => [
@@ -365,12 +400,17 @@ class DashboardController extends Controller
      */
     public function requestsBreakdown()
     {
+        // PERF-09: Add a 12-month window to prevent unbounded data growth
+        $startDate = now()->subMonths(12)->startOfMonth();
+
         $completed = ServiceRequest::whereIn('status', ['assigned', 'in_progress', 'completed'])
+            ->where('created_at', '>=', $startDate)
             ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as count")
             ->groupBy('month')
             ->pluck('count', 'month');
 
         $cancelled = ServiceRequest::where('status', 'cancelled')
+            ->where('created_at', '>=', $startDate)
             ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as count")
             ->groupBy('month')
             ->pluck('count', 'month');
@@ -393,19 +433,20 @@ class DashboardController extends Controller
      */
     public function serviceUtilization()
     {
-        $locations = ServiceRequest::select('latitude', 'longitude', 'city_id')
+        // PERF-04: Group by city instead of exact lat/lng (which produced 1 row per request)
+        $locations = ServiceRequest::select('city_id')
             ->with('city:id,name')
+            ->selectRaw('city_id, COUNT(*) as request_count, AVG(latitude) as avg_lat, AVG(longitude) as avg_lng')
             ->whereNotNull('latitude')
             ->whereNotNull('longitude')
-            ->selectRaw('latitude, longitude, city_id, COUNT(*) as request_count')
-            ->groupBy('latitude', 'longitude', 'city_id')
+            ->groupBy('city_id')
             ->get();
 
         return response()->json([
             'success' => true,
             'data' => $locations->map(fn($l) => [
-                'lat' => $l->latitude,
-                'lng' => $l->longitude,
+                'lat' => round($l->avg_lat, 4),
+                'lng' => round($l->avg_lng, 4),
                 'city' => $l->city->name ?? 'Unknown',
                 'count' => $l->request_count,
             ]),
@@ -575,7 +616,8 @@ class DashboardController extends Controller
      */
     public function requests(Request $request)
     {
-        $query = ServiceRequest::with(['customer.user', 'service', 'city']);
+        $query = ServiceRequest::with(['customer.user', 'service', 'city'])
+            ->withCount('offers');
 
         // Filter by status (dashboard-friendly groups)
         // waiting = pending + open | in_progress = assigned + in_progress
@@ -650,7 +692,7 @@ class DashboardController extends Controller
                     'address' => $req->address,
                     'preferred_date' => $req->preferred_date,
                     'preferred_time' => $req->preferred_time,
-                    'offers_count' => $req->offers()->count(),
+                    'offers_count' => $req->offers_count,
                     'created_at' => $req->created_at,
                 ];
             }),

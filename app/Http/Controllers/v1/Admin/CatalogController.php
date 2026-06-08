@@ -7,6 +7,7 @@ use App\Models\ServiceCategory;
 use App\Models\Service;
 use App\Models\City;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class CatalogController extends Controller
 {
@@ -26,6 +27,9 @@ class CatalogController extends Controller
         ]);
 
         $category = ServiceCategory::create($validated);
+
+        // PERF-05: Invalidate category list cache
+        Cache::forget('service_categories');
 
         return response()->json([
             'success' => true,
@@ -51,6 +55,10 @@ class CatalogController extends Controller
 
         $category->update($validated);
 
+        // PERF-05: Invalidate category caches
+        Cache::forget('service_categories');
+        Cache::forget("service_category_{$id}");
+
         return response()->json([
             'success' => true,
             'message' => 'Category updated successfully',
@@ -65,6 +73,10 @@ class CatalogController extends Controller
     {
         $category = ServiceCategory::findOrFail($id);
         $category->delete();
+
+        // PERF-05: Invalidate category caches
+        Cache::forget('service_categories');
+        Cache::forget("service_category_{$id}");
 
         return response()->json([
             'success' => true,
@@ -89,6 +101,11 @@ class CatalogController extends Controller
         ]);
 
         $service = Service::create($validated);
+
+        // PERF-05: Invalidate service caches
+        Cache::forget('all_services');
+        Cache::forget("category_{$validated['service_category_id']}_services");
+        Cache::forget("service_category_{$validated['service_category_id']}");
 
         return response()->json([
             'success' => true,
@@ -115,6 +132,12 @@ class CatalogController extends Controller
 
         $service->update($validated);
 
+        // PERF-05: Invalidate service caches
+        Cache::forget('all_services');
+        $categoryId = $service->service_category_id;
+        Cache::forget("category_{$categoryId}_services");
+        Cache::forget("service_category_{$categoryId}");
+
         return response()->json([
             'success' => true,
             'message' => 'Service updated successfully',
@@ -128,6 +151,12 @@ class CatalogController extends Controller
     public function deleteService($id)
     {
         $service = Service::findOrFail($id);
+
+        // PERF-05: Invalidate service caches before deleting
+        Cache::forget('all_services');
+        Cache::forget("category_{$service->service_category_id}_services");
+        Cache::forget("service_category_{$service->service_category_id}");
+
         $service->delete();
 
         return response()->json([

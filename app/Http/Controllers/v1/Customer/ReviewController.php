@@ -17,7 +17,8 @@ class ReviewController extends Controller
         ]);
 
         $customer = $request->user()->customer;
-        $job = Job::where('customer_id', $customer->id)
+        $job = Job::with('technician') // PERF-12: Eager-load to prevent N+1
+            ->where('customer_id', $customer->id)
             ->where('id', $jobId)
             ->whereHas('payment') // Must be paid
             ->firstOrFail();

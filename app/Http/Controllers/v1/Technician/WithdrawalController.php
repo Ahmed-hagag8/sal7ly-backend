@@ -7,6 +7,7 @@ use App\Models\Withdrawal;
 use App\Services\WalletService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use App\Helpers\UniqueNumberGenerator;
 
 class WithdrawalController extends Controller
 {
@@ -49,7 +50,7 @@ class WithdrawalController extends Controller
         app(WalletService::class)->holdFunds($wallet, (float) $request->amount);
 
         $withdrawal = Withdrawal::create([
-            'withdrawal_number' => 'WD-' . strtoupper(Str::random(8)),
+            'withdrawal_number' => UniqueNumberGenerator::generate('WD-', 'withdrawals', 'withdrawal_number'),
             'user_id' => $user->id,
             'amount' => $request->amount,
             'method' => $request->input('method'),

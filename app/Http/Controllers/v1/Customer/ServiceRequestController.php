@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Services\NotificationService;
+use App\Helpers\UniqueNumberGenerator;
 
 class ServiceRequestController extends Controller
 {
@@ -29,8 +30,8 @@ class ServiceRequestController extends Controller
         }
 
         $serviceRequest = DB::transaction(function () use ($request, $customer) {
-            // Generate unique request number
-            $requestNumber = 'REQ-' . strtoupper(Str::random(8));
+            // Generate unique request number with collision protection
+            $requestNumber = UniqueNumberGenerator::generate('REQ-', 'service_requests', 'request_number');
 
             // Create service request
             $serviceRequest = ServiceRequest::create([
@@ -131,7 +132,7 @@ class ServiceRequestController extends Controller
             ], 404);
         }
 
-        if (!in_array($serviceRequest->status, ['pending', 'open', 'assigned', 'in_progress'])) {
+        if (!in_array($serviceRequest->status, ['pending', 'open'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Cannot cancel request in current status',
@@ -154,6 +155,7 @@ class ServiceRequestController extends Controller
         $customer = $request->user()->customer;
 
         $query = ServiceRequest::with(['service', 'city'])
+            ->withCount('offers')
             ->where('customer_id', $customer->id);
 
         // Filter by status
@@ -172,7 +174,7 @@ class ServiceRequestController extends Controller
                 'service' => $req->service->name,
                 'city' => $req->city->name,
                 'status' => $req->status,
-                'offers_count' => $req->offers()->count(),
+                'offers_count' => $req->offers_count,
                 'created_at' => $req->created_at,
             ]),
             'meta' => [
@@ -236,7 +238,7 @@ class ServiceRequestController extends Controller
             $serviceRequest->update(['status' => 'assigned']);
             // Create job
             $job = \App\Models\Job::create([
-                'job_number' => 'JOB-' . strtoupper(\Str::random(8)),
+                'job_number' => UniqueNumberGenerator::generate('JOB-', 'jobs', 'job_number'),
                 'service_request_id' => $serviceRequest->id,
                 'job_offer_id' => $offer->id,
                 'customer_id' => $customer->id,
@@ -272,7 +274,7 @@ class ServiceRequestController extends Controller
     public function jobs(Request $request)
     {
         $customer = $request->user()->customer;
-        $jobs = \App\Models\Job::with(['serviceRequest.service', 'technician.user'])
+        $jobs = \App\Models\Job::with(['serviceRequest.service', 'technician.user', 'payment'])
             ->where('customer_id', $customer->id)
             ->latest()
             ->paginate(10);
@@ -286,7 +288,7 @@ class ServiceRequestController extends Controller
                 'agreed_price' => $job->agreed_price,
                 'final_price' => $job->final_price,
                 'status' => $job->status,
-                'is_paid' => $job->payment()->exists(),
+                'is_paid' => $job->payment !== null,
             ]),
             'meta' => [
                 'current_page' => $jobs->currentPage(),

@@ -40,8 +40,13 @@ class ServiceCategoryController extends Controller
         $category = Cache::remember("service_category_{$id}", 3600, function () use ($id) {
             return ServiceCategory::with(['services' => function ($query) {
                 $query->where('is_active', true)->orderBy('name');
-            }])->findOrFail($id);
+            }])->find($id); // PERF-06: Use find() instead of findOrFail() to avoid caching exceptions
         });
+
+        if (!$category) {
+            Cache::forget("service_category_{$id}"); // Clear stale cache
+            abort(404, 'Category not found');
+        }
 
         return response()->json([
             'success' => true,

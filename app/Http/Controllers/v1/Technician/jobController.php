@@ -130,7 +130,8 @@ class JobController extends Controller
             'final_price' => 'nullable|numeric|min:0',
         ]);
 
-        $job = Job::where('technician_id', $request->user()->technician->id)
+        $job = Job::with(['serviceRequest', 'technician']) // PERF-12: Eager-load relations used below
+            ->where('technician_id', $request->user()->technician->id)
             ->where('id', $id)
             ->firstOrFail();
 

@@ -15,6 +15,7 @@ class TechnicianController extends Controller
     public function index(Request $request)
     {
         $query = Technician::with(['user', 'category', 'city'])
+            ->withCount('documents')
             ->whereHas('user'); // Exclude technicians whose user was soft-deleted
 
         // Filter by verification status
@@ -41,7 +42,7 @@ class TechnicianController extends Controller
                 'city' => $tech->city?->name ?? null,
                 'years_of_experience' => $tech->years_of_experience,
                 'verification_status' => $tech->verification_status,
-                'documents_count' => $tech->documents()->count(),
+                'documents_count' => $tech->documents_count,
                 'created_at' => $tech->created_at,
             ]),
             'meta' => [

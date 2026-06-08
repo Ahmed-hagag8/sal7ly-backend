@@ -32,6 +32,7 @@ class ServiceRequestController extends Controller
             ->pluck('id');
 
         $requests = ServiceRequest::with(['service', 'city', 'customer.user'])
+            ->withCount('images')
             ->where('city_id', $technician->city_id)
             ->whereIn('service_id', $serviceIds)
             ->whereIn('status', ['pending', 'open'])
@@ -52,7 +53,7 @@ class ServiceRequestController extends Controller
             'customer_name' => $req->customer->user->name ?? 'Unknown',
             'preferred_date' => $req->preferred_date,
             'ai_predicted_price' => $req->ai_predicted_price,
-            'images_count' => $req->images()->count(),
+            'images_count' => $req->images_count,
             'created_at' => $req->created_at,
         ]));
 

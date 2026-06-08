@@ -7,6 +7,7 @@ use App\Models\Transaction;
 use App\Models\Wallet;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Helpers\UniqueNumberGenerator;
 
 class WalletService
 {
@@ -26,7 +27,7 @@ class WalletService
             $balanceAfter = $balanceBefore + $amount;
 
             $transaction = Transaction::create([
-                'transaction_number' => 'TXN-' . strtoupper(Str::random(10)),
+                'transaction_number' => UniqueNumberGenerator::generate('TXN-', 'transactions', 'transaction_number', 10),
                 'wallet_id' => $wallet->id,
                 'type' => 'credit',
                 'amount' => $amount,
@@ -68,7 +69,7 @@ class WalletService
             $balanceAfter = $balanceBefore - $amount;
 
             $transaction = Transaction::create([
-                'transaction_number' => 'TXN-' . strtoupper(Str::random(10)),
+                'transaction_number' => UniqueNumberGenerator::generate('TXN-', 'transactions', 'transaction_number', 10),
                 'wallet_id' => $wallet->id,
                 'type' => 'debit',
                 'amount' => $amount,
@@ -141,7 +142,7 @@ class WalletService
             $balanceBefore = $wallet->balance;
 
             $transaction = Transaction::create([
-                'transaction_number' => 'TXN-' . strtoupper(Str::random(10)),
+                'transaction_number' => UniqueNumberGenerator::generate('TXN-', 'transactions', 'transaction_number', 10),
                 'wallet_id' => $wallet->id,
                 'type' => 'debit',
                 'amount' => $amount,

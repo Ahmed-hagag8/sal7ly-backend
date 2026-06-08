@@ -17,8 +17,10 @@ class ChatController extends Controller
         $userId = $request->user()->id;
 
         /** @var \Illuminate\Pagination\LengthAwarePaginator $conversations */
-        $conversations = Conversation::where('participant_1_id', $userId)
-            ->orWhere('participant_2_id', $userId)
+        $conversations = Conversation::where(function ($q) use ($userId) {
+                $q->where('participant_1_id', $userId)
+                  ->orWhere('participant_2_id', $userId);
+            })
             ->with(['participant1', 'participant2', 'job'])
             ->latest('last_message_at')
             ->paginate(10);
