@@ -20,12 +20,12 @@ class TechnicianController extends Controller
 
         // Filter by verification status
         if ($request->has('status')) {
-            $query->where('verification_status', $request->status);
+            $query->where('verification_status', $request->input('status'));
         }
 
         // Filter by category
         if ($request->has('category_id')) {
-            $query->where('service_category_id', $request->category_id);
+            $query->where('service_category_id', $request->input('category_id'));
         }
 
         $technicians = $query->latest()->paginate(15);
@@ -168,7 +168,7 @@ class TechnicianController extends Controller
 
         $document->update([
             'status' => 'rejected',
-            'rejection_reason' => $request->reason,
+            'rejection_reason' => $request->input('reason'),
             'verified_by' => $request->user()->id,
             'verified_at' => now(),
         ]);
@@ -205,7 +205,7 @@ class TechnicianController extends Controller
         \Illuminate\Support\Facades\DB::transaction(function () use ($request, $withdrawal, $walletService) {
             $wallet = $withdrawal->user->wallet;
 
-            if ($request->action === 'approve') {
+            if ($request->input('action') === 'approve') {
                 // Funds were already held in pending_balance — settle them now
                 $walletService->settleHeldFunds(
                     $wallet,
@@ -230,7 +230,7 @@ class TechnicianController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Withdrawal ' . $request->action . 'd',
+            'message' => 'Withdrawal ' . $request->input('action') . 'd',
         ]);
     }
 
@@ -244,20 +244,19 @@ class TechnicianController extends Controller
         $document = TechnicianDocument::findOrFail($documentId);
         
         \Log::info("Document file_path: {$document->file_path}");
-        
         // New secure path
         $path = storage_path('app/' . $document->file_path);
-        
+
         // Fallback for older documents that were saved in the public disk
         $oldPath = storage_path('app/public/' . $document->file_path);
-        
+
         $filePath = null;
         if (file_exists($path)) {
             $filePath = $path;
         } elseif (file_exists($oldPath)) {
             $filePath = $oldPath;
         }
-        
+
         if (!$filePath) {
             \Log::error("Document file not found. Checked: {$path} and {$oldPath}");
             return response()->json([
@@ -265,11 +264,11 @@ class TechnicianController extends Controller
                 'message' => 'Document file not found on server.',
             ], 404);
         }
-        
+
         \Log::info("Serving file from: {$filePath}");
-        
+
         $mimeType = mime_content_type($filePath);
-        
+
         return response()->file($filePath, [
             'Content-Type' => $mimeType,
             'Access-Control-Allow-Origin' => '*',
