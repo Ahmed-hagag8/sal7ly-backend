@@ -16,7 +16,6 @@ class DatabaseSeeder extends Seeder
             ServiceCategorySeeder::class,
             AdminSeeder::class,
             TestUsersSeeder::class,
-            ServiceSeeder::class,
         ]);
 
         echo "\n✅ Database seeding completed successfully!\n";
