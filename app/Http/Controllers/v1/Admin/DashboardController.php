@@ -7,6 +7,7 @@ use App\Models\{User, Technician, Customer, Job, ServiceRequest, Payment, Withdr
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 
 class DashboardController extends Controller
 {
@@ -469,7 +470,7 @@ class DashboardController extends Controller
             'role' => $user->role,
             'is_active' => $user->is_active,
             'profile_image' => $user->profile_image
-                ? asset('storage/' . $user->profile_image)
+                ? Storage::url($user->profile_image)
                 : null,
             'email_verified_at' => $user->email_verified_at,
             'phone_verified_at' => $user->phone_verified_at,
@@ -748,7 +749,7 @@ class DashboardController extends Controller
                 ],
                 'images' => $serviceRequest->images->map(fn($img) => [
                     'id' => $img->id,
-                    'url' => asset('storage/' . $img->path),
+                    'url' => Storage::url($img->path),
                     'status' => $img->status,
                 ]),
                 'offers' => $serviceRequest->offers->map(fn($offer) => [

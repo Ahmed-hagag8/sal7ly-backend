@@ -245,35 +245,16 @@ class TechnicianController extends Controller
         
         \Log::info("Document file_path: {$document->file_path}");
         
-        // New secure path
-        $path = storage_path('app/' . $document->file_path);
-        
-        // Fallback for older documents that were saved in the public disk
-        $oldPath = storage_path('app/public/' . $document->file_path);
-        
-        $filePath = null;
-        if (file_exists($path)) {
-            $filePath = $path;
-        } elseif (file_exists($oldPath)) {
-            $filePath = $oldPath;
-        }
-        
-        if (!$filePath) {
-            \Log::error("Document file not found. Checked: {$path} and {$oldPath}");
+        if (!\Illuminate\Support\Facades\Storage::exists($document->file_path)) {
+            \Log::error("Document file not found: {$document->file_path}");
             return response()->json([
                 'success' => false,
                 'message' => 'Document file not found on server.',
             ], 404);
         }
         
-        \Log::info("Serving file from: {$filePath}");
+        \Log::info("Serving file from storage: {$document->file_path}");
         
-        $mimeType = mime_content_type($filePath);
-        
-        return response()->file($filePath, [
-            'Content-Type' => $mimeType,
-            'Access-Control-Allow-Origin' => '*',
-            'Cache-Control' => 'no-cache',
-        ]);
+        return \Illuminate\Support\Facades\Storage::response($document->file_path);
     }
 }

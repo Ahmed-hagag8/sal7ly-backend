@@ -9,6 +9,7 @@ use App\Models\ServiceRequest;
 use App\Models\JobOffer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use App\Services\NotificationService;
 use App\Helpers\UniqueNumberGenerator;
@@ -61,8 +62,7 @@ class ServiceRequestController extends Controller
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $image) {
                     $path = $image->store(
-                        "service_requests/{$serviceRequest->id}",
-                        'public'
+                        "service_requests/{$serviceRequest->id}"
                     );
 
                     ServiceImage::create([
@@ -114,7 +114,7 @@ class ServiceRequestController extends Controller
                 'ai_predicted_price' => $serviceRequest->ai_predicted_price,
                 'images' => $serviceRequest->images->map(fn($img) => [
                     'id' => $img->id,
-                    'url' => asset('storage/' . $img->path),
+                    'url' => Storage::url($img->path),
                     'status' => $img->status,
                 ]),
                 'created_at' => $serviceRequest->created_at,
@@ -333,7 +333,7 @@ class ServiceRequestController extends Controller
                     'phone' => $job->technician->user->phone,
                     'rating' => $job->technician->average_rating,
                     'profile_image' => $job->technician->user->profile_image
-                        ? asset('storage/' . $job->technician->user->profile_image)
+                        ? Storage::url($job->technician->user->profile_image)
                         : null,
                 ],
                 'agreed_price' => $job->agreed_price,
