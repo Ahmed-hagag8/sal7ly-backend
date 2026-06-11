@@ -14,8 +14,7 @@ class CreateServiceRequestRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'service_id' => 'required|exists:services,id',
-            'title' => 'required|string|max:255',
+            'category_id' => 'required|exists:service_categories,id',
             'description' => 'required|string|max:2000',
             'address' => 'required|string|max:500',
             'city_id' => 'required|exists:cities,id',

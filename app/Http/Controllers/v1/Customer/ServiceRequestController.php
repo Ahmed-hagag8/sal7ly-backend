@@ -29,7 +29,16 @@ class ServiceRequestController extends Controller
             ], 404);
         }
 
-        $serviceRequest = DB::transaction(function () use ($request, $customer) {
+        $service = \App\Models\Service::where('service_category_id', $request->category_id)->first();
+        if (!$service) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No services available for this category',
+            ], 400);
+        }
+        $category = \App\Models\ServiceCategory::find($request->category_id);
+
+        $serviceRequest = DB::transaction(function () use ($request, $customer, $service, $category) {
             // Generate unique request number with collision protection
             $requestNumber = UniqueNumberGenerator::generate('REQ-', 'service_requests', 'request_number');
 
@@ -37,9 +46,9 @@ class ServiceRequestController extends Controller
             $serviceRequest = ServiceRequest::create([
                 'request_number' => $requestNumber,
                 'customer_id' => $customer->id,
-                'service_id' => $request->service_id,
+                'service_id' => $service->id,
                 'city_id' => $request->city_id,
-                'title' => $request->title,
+                'title' => 'Request for ' . $category->name,
                 'description' => $request->description,
                 'address' => $request->address,
                 'latitude' => $request->latitude ?? $customer->latitude,
