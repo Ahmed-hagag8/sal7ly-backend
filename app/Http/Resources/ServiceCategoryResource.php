@@ -15,8 +15,6 @@ class ServiceCategoryResource extends JsonResource
             'icon' => $this->icon,
             'description' => $this->description,
             'is_active' => $this->is_active,
-            'services_count' => $this->whenCounted('services'),
-            'services' => ServiceResource::collection($this->whenLoaded('services')),
         ];
     }
 }

@@ -34,8 +34,6 @@ Route::post('/forgot-password-email', [AuthController::class, 'forgotPasswordEma
 Route::post('/reset-password-email', [AuthController::class, 'resetPasswordEmail']);
 Route::get('/categories', [ServiceCategoryController::class, 'index']);
 Route::get('/categories/{id}', [ServiceCategoryController::class, 'show']);
-Route::get('/categories/{id}/services', [ServiceCategoryController::class, 'services']);
-Route::get('/services', [ServiceCategoryController::class, 'allServices']);
 Route::get('/cities', [CatalogController::class, 'cities']);
 Route::get('/health', function () {
     return response()->json([
@@ -107,9 +105,6 @@ Route::middleware(['auth:sanctum', 'active', 'role:admin'])->prefix('admin')->gr
     Route::post('/categories', [CatalogController::class, 'storeCategory']);
     Route::put('/categories/{id}', [CatalogController::class, 'updateCategory']);
     Route::delete('/categories/{id}', [CatalogController::class, 'deleteCategory']);
-    Route::post('/services', [CatalogController::class, 'storeService']);
-    Route::put('/services/{id}', [CatalogController::class, 'updateService']);
-    Route::delete('/services/{id}', [CatalogController::class, 'deleteService']);
     Route::get('/cities', [CatalogController::class, 'cities']);
     Route::post('/cities', [CatalogController::class, 'storeCity']);
     Route::put('/cities/{id}', [CatalogController::class, 'updateCity']);

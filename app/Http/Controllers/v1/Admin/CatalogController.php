@@ -4,7 +4,6 @@ namespace App\Http\Controllers\v1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ServiceCategory;
-use App\Models\Service;
 use App\Models\City;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -81,87 +80,6 @@ class CatalogController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Category deleted successfully',
-        ]);
-    }
-
-    // ===================== SERVICES =====================
-
-    /**
-     * Create a new service
-     */
-    public function storeService(Request $request)
-    {
-        $validated = $request->validate([
-            'service_category_id' => 'required|exists:service_categories,id',
-            'name' => 'required|string|max:255',
-            'name_ar' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'base_price' => 'required|numeric|min:0',
-            'is_active' => 'boolean',
-        ]);
-
-        $service = Service::create($validated);
-
-        // PERF-05: Invalidate service caches
-        Cache::forget('all_services');
-        Cache::forget("category_{$validated['service_category_id']}_services");
-        Cache::forget("service_category_{$validated['service_category_id']}");
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Service created successfully',
-            'data' => $service,
-        ], 201);
-    }
-
-    /**
-     * Update a service
-     */
-    public function updateService(Request $request, $id)
-    {
-        $service = Service::findOrFail($id);
-
-        $validated = $request->validate([
-            'service_category_id' => 'sometimes|exists:service_categories,id',
-            'name' => 'sometimes|string|max:255',
-            'name_ar' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'base_price' => 'sometimes|numeric|min:0',
-            'is_active' => 'sometimes|boolean',
-        ]);
-
-        $service->update($validated);
-
-        // PERF-05: Invalidate service caches
-        Cache::forget('all_services');
-        $categoryId = $service->service_category_id;
-        Cache::forget("category_{$categoryId}_services");
-        Cache::forget("service_category_{$categoryId}");
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Service updated successfully',
-            'data' => $service,
-        ]);
-    }
-
-    /**
-     * Delete a service
-     */
-    public function deleteService($id)
-    {
-        $service = Service::findOrFail($id);
-
-        // PERF-05: Invalidate service caches before deleting
-        Cache::forget('all_services');
-        Cache::forget("category_{$service->service_category_id}_services");
-        Cache::forget("service_category_{$service->service_category_id}");
-
-        $service->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Service deleted successfully',
         ]);
     }
 

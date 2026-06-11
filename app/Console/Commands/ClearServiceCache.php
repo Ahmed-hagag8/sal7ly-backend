@@ -13,13 +13,11 @@ class ClearServiceCache extends Command
     public function handle()
     {
         Cache::forget('service_categories');
-        Cache::forget('all_services');
         
         // Clear individual category caches
         $categories = \App\Models\ServiceCategory::pluck('id');
         foreach ($categories as $id) {
             Cache::forget("service_category_{$id}");
-            Cache::forget("category_{$id}_services");
         }
 
         $this->info('Service cache cleared successfully!');

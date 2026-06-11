@@ -38,24 +38,22 @@ class ServiceRequestController extends Controller
             ->latest()
             ->paginate(10);
 
-        $requests->setCollection($requests->getCollection()->map(fn($req) => [
-            'id' => $req->id,
-            'request_number' => $req->request_number,
-            'title' => $req->title,
-            'description' => $req->description,
-            'category' => $req->category->name ?? null,
-            'city' => $req->city->name,
-            'address' => $req->address,
-            'customer_name' => $req->customer->user->name ?? 'Unknown',
-            'preferred_date' => $req->preferred_date,
-            'ai_predicted_price' => $req->ai_predicted_price,
-            'images_count' => $req->images_count,
-            'created_at' => $req->created_at,
-        ]));
-
         return response()->json([
             'success' => true,
-            'data' => $requests,
+            'data' => collect($requests->items())->map(fn($req) => [
+                'id' => $req->id,
+                'request_number' => $req->request_number,
+                'title' => $req->title,
+                'description' => $req->description,
+                'category' => $req->category->name ?? null,
+                'city' => $req->city->name,
+                'address' => $req->address,
+                'customer_name' => $req->customer->user->name ?? 'Unknown',
+                'preferred_date' => $req->preferred_date,
+                'ai_predicted_price' => $req->ai_predicted_price,
+                'images_count' => $req->images_count,
+                'created_at' => $req->created_at,
+            ]),
             'meta' => [
                 'current_page' => $requests->currentPage(),
                 'last_page' => $requests->lastPage(),
