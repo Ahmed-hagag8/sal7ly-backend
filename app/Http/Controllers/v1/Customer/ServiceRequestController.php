@@ -37,16 +37,7 @@ class ServiceRequestController extends Controller
             ], 404);
         }
 
-        $service = \App\Models\Service::firstOrCreate(
-            ['service_category_id' => $category->id],
-            [
-                'name' => 'General ' . $category->name,
-                'description' => 'General service for ' . $category->name,
-                'is_active' => true,
-            ]
-        );
-
-        $serviceRequest = DB::transaction(function () use ($request, $customer, $service, $category) {
+        $serviceRequest = DB::transaction(function () use ($request, $customer, $category) {
             // Generate unique request number with collision protection
             $requestNumber = UniqueNumberGenerator::generate('REQ-', 'service_requests', 'request_number');
 
@@ -54,7 +45,7 @@ class ServiceRequestController extends Controller
             $serviceRequest = ServiceRequest::create([
                 'request_number' => $requestNumber,
                 'customer_id' => $customer->id,
-                'service_id' => $service->id,
+                'category_id' => $category->id,
                 'city_id' => $request->city_id,
                 'title' => 'Request for ' . $category->name,
                 'description' => $request->description,
@@ -103,7 +94,7 @@ class ServiceRequestController extends Controller
     {
         $customer = $request->user()->customer;
 
-        $serviceRequest = ServiceRequest::with(['service', 'city', 'images'])
+        $serviceRequest = ServiceRequest::with(['category', 'city', 'images'])
             ->where('customer_id', $customer->id)
             ->findOrFail($id);
 
@@ -114,7 +105,7 @@ class ServiceRequestController extends Controller
                 'request_number' => $serviceRequest->request_number,
                 'title' => $serviceRequest->title,
                 'description' => $serviceRequest->description,
-                'service' => $serviceRequest->service->name,
+                'category' => $serviceRequest->category->name ?? null,
                 'city' => $serviceRequest->city->name,
                 'address' => $serviceRequest->address,
                 'preferred_date' => $serviceRequest->preferred_date,
@@ -171,7 +162,7 @@ class ServiceRequestController extends Controller
     {
         $customer = $request->user()->customer;
 
-        $query = ServiceRequest::with(['service', 'city'])
+        $query = ServiceRequest::with(['category', 'city'])
             ->withCount('offers')
             ->where('customer_id', $customer->id);
 
@@ -188,7 +179,7 @@ class ServiceRequestController extends Controller
                 'id' => $req->id,
                 'request_number' => $req->request_number,
                 'title' => $req->title,
-                'service' => $req->service->name,
+                'category' => $req->category->name ?? null,
                 'city' => $req->city->name,
                 'status' => $req->status,
                 'offers_count' => $req->offers_count,
@@ -291,7 +282,7 @@ class ServiceRequestController extends Controller
     public function jobs(Request $request)
     {
         $customer = $request->user()->customer;
-        $jobs = \App\Models\Job::with(['serviceRequest.service', 'technician.user', 'payment'])
+        $jobs = \App\Models\Job::with(['serviceRequest.category', 'technician.user', 'payment'])
             ->where('customer_id', $customer->id)
             ->latest()
             ->paginate(10);
@@ -300,7 +291,7 @@ class ServiceRequestController extends Controller
             'data' => collect($jobs->items())->map(fn($job) => [
                 'id' => $job->id,
                 'job_number' => $job->job_number,
-                'service' => $job->serviceRequest->service->name,
+                'category' => $job->serviceRequest->category->name ?? null,
                 'technician_name' => $job->technician->user->name,
                 'agreed_price' => $job->agreed_price,
                 'final_price' => $job->final_price,
@@ -322,7 +313,7 @@ class ServiceRequestController extends Controller
     public function showJob(Request $request, $id)
     {
         $customer = $request->user()->customer;
-        $job = \App\Models\Job::with(['serviceRequest.service', 'serviceRequest.city', 'technician.user', 'payment'])
+        $job = \App\Models\Job::with(['serviceRequest.category', 'serviceRequest.city', 'technician.user', 'payment'])
             ->where('customer_id', $customer->id)
             ->findOrFail($id);
 
@@ -331,7 +322,7 @@ class ServiceRequestController extends Controller
             'data' => [
                 'id' => $job->id,
                 'job_number' => $job->job_number,
-                'service' => $job->serviceRequest->service->name,
+                'category' => $job->serviceRequest->category->name ?? null,
                 'title' => $job->serviceRequest->title,
                 'description' => $job->serviceRequest->description,
                 'address' => $job->serviceRequest->address,

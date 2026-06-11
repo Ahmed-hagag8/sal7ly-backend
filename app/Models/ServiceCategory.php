@@ -11,9 +11,9 @@ class ServiceCategory extends Model
     protected $fillable = ['name', 'name_ar', 'icon', 'description', 'is_active'];
 
     protected $casts = ['is_active' => 'boolean'];
-    public function services()
+    public function serviceRequests()
     {
-        return $this->hasMany(Service::class);
+        return $this->hasMany(ServiceRequest::class);
     }
     public function technicians()
     {

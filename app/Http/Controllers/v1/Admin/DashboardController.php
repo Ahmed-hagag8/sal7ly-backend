@@ -196,7 +196,7 @@ class DashboardController extends Controller
      */
     public function transactions(Request $request)
     {
-        $query = Payment::with(['customer.user', 'technician.user', 'job.serviceRequest.service']);
+        $query = Payment::with(['customer.user', 'technician.user', 'job.serviceRequest.category']);
         if ($request->has('status')) {
             $query->where('status', $request->status);
         }
@@ -209,7 +209,7 @@ class DashboardController extends Controller
                 'date' => $p->created_at->format('Y-m-d'),
                 'customer' => $p->customer->user->name,
                 'technician' => $p->technician->user->name,
-                'service' => $p->job->serviceRequest->service->name ?? 'N/A',
+                'category' => $p->job->serviceRequest->category->name ?? 'N/A',
                 'amount' => $p->amount,
                 'status' => $p->status,
             ]),
@@ -330,9 +330,9 @@ class DashboardController extends Controller
      */
     public function serviceDistribution()
     {
-        $distribution = ServiceRequest::join('services', 'service_requests.service_id', '=', 'services.id')
-            ->selectRaw('services.name as service, COUNT(*) as count')
-            ->groupBy('services.name')
+        $distribution = ServiceRequest::join('service_categories', 'service_requests.category_id', '=', 'service_categories.id')
+            ->selectRaw('service_categories.name as category, COUNT(*) as count')
+            ->groupBy('service_categories.name')
             ->get();
         return response()->json([
             'success' => true,
@@ -346,9 +346,9 @@ class DashboardController extends Controller
     {
         $revenue = Payment::join('jobs', 'payments.job_id', '=', 'jobs.id')
             ->join('service_requests', 'jobs.service_request_id', '=', 'service_requests.id')
-            ->join('services', 'service_requests.service_id', '=', 'services.id')
-            ->selectRaw('services.name as service, SUM(payments.amount) as total')
-            ->groupBy('services.name')
+            ->join('service_categories', 'service_requests.category_id', '=', 'service_categories.id')
+            ->selectRaw('service_categories.name as category, SUM(payments.amount) as total')
+            ->groupBy('service_categories.name')
             ->get();
         return response()->json([
             'success' => true,
@@ -616,7 +616,7 @@ class DashboardController extends Controller
      */
     public function requests(Request $request)
     {
-        $query = ServiceRequest::with(['customer.user', 'service', 'city'])
+        $query = ServiceRequest::with(['customer.user', 'category', 'city'])
             ->withCount('offers');
 
         // Filter by status (dashboard-friendly groups)
@@ -652,9 +652,9 @@ class DashboardController extends Controller
             $query->where('city_id', $request->city_id);
         }
 
-        // Filter by service
-        if ($request->has('service_id')) {
-            $query->where('service_id', $request->service_id);
+        // Filter by category
+        if ($request->has('category_id')) {
+            $query->where('category_id', $request->category_id);
         }
 
         // Filter by date range
@@ -682,7 +682,7 @@ class DashboardController extends Controller
                         default => $req->status,
                     },
                     'status_raw' => $req->status,
-                    'service' => $req->service->name ?? null,
+                    'category' => $req->category->name ?? null,
                     'city' => $req->city->name ?? null,
                     'customer' => [
                         'id' => $req->customer->id ?? null,
@@ -713,7 +713,7 @@ class DashboardController extends Controller
     {
         $serviceRequest = ServiceRequest::with([
             'customer.user',
-            'service',
+            'category',
             'city',
             'images',
             'offers.technician.user',
@@ -729,8 +729,8 @@ class DashboardController extends Controller
                 'title' => $serviceRequest->title,
                 'description' => $serviceRequest->description,
                 'status' => $serviceRequest->status,
-                'service' => $serviceRequest->service->name ?? null,
-                'service_id' => $serviceRequest->service_id,
+                'category' => $serviceRequest->category->name ?? null,
+                'category_id' => $serviceRequest->category_id,
                 'city' => $serviceRequest->city->name ?? null,
                 'city_id' => $serviceRequest->city_id,
                 'address' => $serviceRequest->address,

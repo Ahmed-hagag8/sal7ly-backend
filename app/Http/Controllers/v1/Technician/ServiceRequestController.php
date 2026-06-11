@@ -27,14 +27,10 @@ class ServiceRequestController extends Controller
             ], 404);
         }
 
-        // Get service IDs in technician's category
-        $serviceIds = \App\Models\Service::where('service_category_id', $technician->service_category_id)
-            ->pluck('id');
-
-        $requests = ServiceRequest::with(['service', 'city', 'customer.user'])
+        $requests = ServiceRequest::with(['category', 'city', 'customer.user'])
             ->withCount('images')
             ->where('city_id', $technician->city_id)
-            ->whereIn('service_id', $serviceIds)
+            ->where('category_id', $technician->service_category_id)
             ->whereIn('status', ['pending', 'open'])
             ->whereDoesntHave('offers', function ($q) use ($technician) {
                 $q->where('technician_id', $technician->id);
@@ -47,7 +43,7 @@ class ServiceRequestController extends Controller
             'request_number' => $req->request_number,
             'title' => $req->title,
             'description' => $req->description,
-            'service' => $req->service->name,
+            'category' => $req->category->name ?? null,
             'city' => $req->city->name,
             'address' => $req->address,
             'customer_name' => $req->customer->user->name ?? 'Unknown',
@@ -79,13 +75,9 @@ class ServiceRequestController extends Controller
     {
         $technician = $request->user()->technician;
 
-        // Get service IDs in technician's category
-        $serviceIds = \App\Models\Service::where('service_category_id', $technician->service_category_id)
-            ->pluck('id');
-
-        $serviceRequest = ServiceRequest::with(['service', 'city', 'customer.user', 'images'])
+        $serviceRequest = ServiceRequest::with(['category', 'city', 'customer.user', 'images'])
             ->where('city_id', $technician->city_id)
-            ->whereIn('service_id', $serviceIds)
+            ->where('category_id', $technician->service_category_id)
             ->findOrFail($id);
 
         // Check if technician already made offer
@@ -100,7 +92,7 @@ class ServiceRequestController extends Controller
                 'request_number' => $serviceRequest->request_number,
                 'title' => $serviceRequest->title,
                 'description' => $serviceRequest->description,
-                'service' => $serviceRequest->service->name,
+                'category' => $serviceRequest->category->name ?? null,
                 'city' => $serviceRequest->city->name,
                 'address' => $serviceRequest->address,
                 'latitude' => $serviceRequest->latitude,

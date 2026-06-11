@@ -11,7 +11,7 @@ class ServiceRequest extends Model
     protected $fillable = [
         'request_number',
         'customer_id',
-        'service_id',
+        'category_id',
         'title',
         'description',
         'address',
@@ -31,9 +31,9 @@ class ServiceRequest extends Model
     {
         return $this->belongsTo(Customer::class);
     }
-    public function service()
+    public function category()
     {
-        return $this->belongsTo(Service::class);
+        return $this->belongsTo(ServiceCategory::class);
     }
     public function city()
     {

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\v1;
 
 use App\Http\Controllers\Controller;
-use App\Models\Service;
+use App\Models\ServiceCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
@@ -20,26 +20,25 @@ class AIController extends Controller
      * Predict price for a service
      *
      * The AI model expects an Arabic category name (e.g. سباكة، كهرباء) rather than
-     * a numeric service_id. This method resolves the service_id to its parent
-     * category's Arabic name before forwarding to the AI microservice.
+     * a numeric category_id. This method resolves the category_id to its
+     * Arabic name before forwarding to the AI microservice.
      */
     public function predictPrice(Request $request)
     {
         $request->validate([
-            'service_id' => 'required|exists:services,id',
+            'category_id' => 'required|exists:service_categories,id',
             'description' => 'required|string',
         ]);
 
         try {
-            // Resolve service_id → category Arabic name for the AI model
-            $service = Service::with('category')->findOrFail($request->service_id);
-            $categoryNameAr = $service->category->name_ar ?? $service->category->name;
+            // Resolve category_id → category Arabic name for the AI model
+            $category = ServiceCategory::findOrFail($request->category_id);
+            $categoryNameAr = $category->name_ar ?? $category->name;
 
             $response = Http::timeout(30)->post("{$this->baseUrl}/predict-price", [
-                'service_id'       => $request->service_id,
+                'category_id'      => $request->category_id,
                 'category_name_ar' => $categoryNameAr,
-                'category_name'    => $service->category->name,
-                'service_name'     => $service->name,
+                'category_name'    => $category->name,
                 'description'      => $request->description,
             ]);
 
