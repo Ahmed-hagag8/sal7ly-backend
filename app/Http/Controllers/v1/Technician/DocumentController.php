@@ -65,7 +65,8 @@ class DocumentController extends Controller
 
         // Store file securely
         $path = $request->file('file')->store(
-            "technician_documents/{$technician->id}"
+            "technician_documents/{$technician->id}",
+            'local'
         );
 
         $document = TechnicianDocument::create([
@@ -115,7 +116,7 @@ class DocumentController extends Controller
         }
 
         // Delete file
-        Storage::delete($document->file_path);
+        Storage::disk('local')->delete($document->file_path);
         $document->delete();
 
         return response()->json([

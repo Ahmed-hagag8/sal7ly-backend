@@ -37,7 +37,7 @@ class ProfileController extends Controller
             'phone' => $user->phone,
             'role' => $user->role,
             'profile_image' => $user->profile_image
-                ? Storage::url($user->profile_image)
+                ? asset('storage/' . $user->profile_image)
                 : null,
             'is_active' => $user->is_active,
             'created_at' => $user->created_at,
@@ -221,11 +221,11 @@ class ProfileController extends Controller
 
         // Delete old image if exists
         if ($user->profile_image) {
-            Storage::delete($user->profile_image);
+            Storage::disk('public')->delete($user->profile_image);
         }
 
         // Store new image
-        $path = $request->file('image')->store('profile_images');
+        $path = $request->file('image')->store('profile_images', 'public');
 
         // Update user
         $user->profile_image = $path;
@@ -235,7 +235,7 @@ class ProfileController extends Controller
             'success' => true,
             'message' => 'Profile image uploaded successfully',
             'data' => [
-                'profile_image' => Storage::url($path),
+                'profile_image' => asset('storage/' . $path),
             ],
         ]);
     }

@@ -5,7 +5,6 @@ namespace App\Http\Controllers\v1\Technician;
 use App\Http\Controllers\Controller;
 use App\Models\ServiceRequest;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class ServiceRequestController extends Controller
 {
@@ -103,7 +102,7 @@ class ServiceRequestController extends Controller
                 'status' => $serviceRequest->status,
                 'images' => $serviceRequest->images->map(fn($img) => [
                     'id' => $img->id,
-                    'url' => Storage::url($img->path),
+                    'url' => asset('storage/' . $img->path),
                 ]),
                 'my_offer' => $existingOffer ? [
                     'id' => $existingOffer->id,

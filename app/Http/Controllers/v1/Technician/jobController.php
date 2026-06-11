@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Job;
 use Illuminate\Http\Request;
 use App\Models\TechnicianLocation;
-use Illuminate\Support\Facades\Storage;
 
 class JobController extends Controller
 {
@@ -85,7 +84,7 @@ class JobController extends Controller
                     ->where('type', 'technician_to_customer')->exists(),
                 'images' => $job->serviceRequest->images->map(fn($img) => [
                     'id' => $img->id,
-                    'url' => Storage::url($img->path),
+                    'url' => asset('storage/' . $img->path),
                 ]),
                 'created_at' => $job->created_at,
             ],
