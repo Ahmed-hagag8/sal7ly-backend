@@ -29,14 +29,22 @@ class ServiceRequestController extends Controller
             ], 404);
         }
 
-        $service = \App\Models\Service::where('service_category_id', $request->category_id)->first();
-        if (!$service) {
+        $category = \App\Models\ServiceCategory::find($request->category_id);
+        if (!$category) {
             return response()->json([
                 'success' => false,
-                'message' => 'No services available for this category',
-            ], 400);
+                'message' => 'Category not found',
+            ], 404);
         }
-        $category = \App\Models\ServiceCategory::find($request->category_id);
+
+        $service = \App\Models\Service::firstOrCreate(
+            ['service_category_id' => $category->id],
+            [
+                'name' => 'General ' . $category->name,
+                'description' => 'General service for ' . $category->name,
+                'is_active' => true,
+            ]
+        );
 
         $serviceRequest = DB::transaction(function () use ($request, $customer, $service, $category) {
             // Generate unique request number with collision protection
