@@ -783,4 +783,68 @@ class DashboardController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Earnings chart data (line chart — grouped by date)
+     * GET /admin/billing/earnings-chart?period=week|month|year
+     */
+    public function earningsChart(Request $request)
+    {
+        $period = $request->period ?? 'month';
+
+        $query = Payment::where('status', 'completed');
+
+        // Apply date filter
+        match ($period) {
+            'week' => $query->where('paid_at', '>=', now()->subWeek()),
+            'month' => $query->where('paid_at', '>=', now()->subMonth()),
+            'year' => $query->where('paid_at', '>=', now()->subYear()),
+            default => $query->where('paid_at', '>=', now()->subMonth()),
+        };
+
+        // Group by date — for 'year' group by month, otherwise group by day
+        if ($period === 'year') {
+            $earnings = $query
+                ->selectRaw("DATE_FORMAT(paid_at, '%Y-%m') as label, SUM(technician_earnings) as total_earnings, SUM(amount) as total_amount, SUM(commission_amount) as total_commission")
+                ->groupBy('label')
+                ->orderBy('label')
+                ->get();
+        } else {
+            $earnings = $query
+                ->selectRaw("DATE(paid_at) as label, SUM(technician_earnings) as total_earnings, SUM(amount) as total_amount, SUM(commission_amount) as total_commission")
+                ->groupBy('label')
+                ->orderBy('label')
+                ->get();
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $earnings->map(fn($e) => [
+                'label' => $e->label,
+                'earnings' => (float) $e->total_earnings,
+                'amount' => (float) $e->total_amount,
+                'commission' => (float) $e->total_commission,
+            ]),
+        ]);
+    }
+
+    /**
+     * Transaction type distribution (pie chart)
+     * GET /admin/billing/transaction-types
+     */
+    public function transactionTypes()
+    {
+        $servicePayments = Payment::where('status', 'completed')->sum('amount');
+        $withdrawals = Withdrawal::where('status', 'approved')->sum('amount');
+        $refunds = Payment::where('status', 'refunded')->sum('amount');
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                ['type' => 'Service Payment', 'total' => (float) $servicePayments],
+                ['type' => 'Withdrawals', 'total' => (float) $withdrawals],
+                ['type' => 'Refund', 'total' => (float) $refunds],
+            ],
+        ]);
+    }
 }
