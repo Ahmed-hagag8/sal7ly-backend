@@ -37,7 +37,63 @@ class ServiceRequestController extends Controller
             ], 404);
         }
 
-        $serviceRequest = DB::transaction(function () use ($request, $customer, $category) {
+        // ── AI Image Validation (before creating the request) ──────────
+        $aiResults = []; // Store AI response per image index
+        $invalidImages = []; // Track which images failed
+        $aiServiceAvailable = true;
+
+        if ($request->hasFile('images')) {
+            $aiBaseUrl = config('services.ai.url');
+
+            foreach ($request->file('images') as $index => $image) {
+                try {
+                    $httpRequest = \Illuminate\Support\Facades\Http::timeout(30)
+                        ->attach('image', file_get_contents($image), 'image.jpg');
+
+                    // Send description to enable full AI matching pipeline
+                    if ($request->filled('description')) {
+                        $httpRequest = \Illuminate\Support\Facades\Http::timeout(30)
+                            ->attach('image', file_get_contents($image), 'image.jpg')
+                            ->attach('description', $request->description);
+                    }
+
+                    $response = $httpRequest->post("{$aiBaseUrl}/detect-image");
+
+                    if ($response->successful()) {
+                        $data = $response->json();
+                        $aiResults[$index] = $data;
+
+                        if (!($data['is_valid'] ?? false)) {
+                            $invalidImages[] = [
+                                'image_index' => $index + 1,
+                                'message' => $data['message'] ?? 'Image is not valid for this service.',
+                                'detected_objects' => $data['detected_objects'] ?? [],
+                            ];
+                        }
+                    } else {
+                        // AI returned an error response — treat as unavailable for this image
+                        $aiResults[$index] = null;
+                        $aiServiceAvailable = false;
+                    }
+                } catch (\Exception $e) {
+                    // AI service is down — graceful degradation
+                    $aiResults[$index] = null;
+                    $aiServiceAvailable = false;
+                }
+            }
+
+            // If AI was available and some images are invalid, reject the entire request
+            if ($aiServiceAvailable && count($invalidImages) > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Some images are not valid for this service. Please upload valid images.',
+                    'invalid_images' => $invalidImages,
+                ], 422);
+            }
+        }
+        // ── End AI Image Validation ────────────────────────────────────
+
+        $serviceRequest = DB::transaction(function () use ($request, $customer, $category, $aiResults, $aiServiceAvailable) {
             // Generate unique request number with collision protection
             $requestNumber = UniqueNumberGenerator::generate('REQ-', 'service_requests', 'request_number');
 
@@ -57,18 +113,25 @@ class ServiceRequestController extends Controller
                 'status' => 'pending',
             ]);
 
-            // Upload images if provided
+            // Upload images if provided (with AI audit data)
             if ($request->hasFile('images')) {
-                foreach ($request->file('images') as $image) {
+                foreach ($request->file('images') as $index => $image) {
                     $path = $image->store(
                         "service_requests/{$serviceRequest->id}",
                         'public'
                     );
 
+                    $aiData = $aiResults[$index] ?? null;
+
                     ServiceImage::create([
                         'service_request_id' => $serviceRequest->id,
                         'path' => $path,
-                        'status' => 'pending', // AI will check later
+                        'status' => $aiData ? ($aiData['is_valid'] ? 'approved' : 'rejected') : 'pending',
+                        'ai_checked_at' => $aiData ? now() : null,
+                        'ai_result' => $aiData ? ($aiData['is_valid'] ? 'valid' : 'invalid') : null,
+                        'ai_confidence_score' => $aiData['confidence_score'] ?? null,
+                        'ai_detected_objects' => $aiData['detected_objects'] ?? null,
+                        'ai_suggested_service' => $aiData['suggested_service'] ?? null,
                     ]);
                 }
             }

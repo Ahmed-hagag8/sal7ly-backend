@@ -14,10 +14,14 @@ class ServiceImage extends Model
         'status',
         'ai_checked_at',
         'ai_result',
-        'rejection_reason'
+        'rejection_reason',
+        'ai_confidence_score',
+        'ai_detected_objects',
+        'ai_suggested_service',
     ];
     protected $casts = [
         'ai_checked_at' => 'datetime',
+        'ai_detected_objects' => 'array',
     ];
     public function serviceRequest()
     {
