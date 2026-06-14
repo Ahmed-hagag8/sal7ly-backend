@@ -18,7 +18,10 @@ class Payment extends Model
         'technician_earnings',
         'payment_method',
         'status',
-        'paid_at'
+        'paid_at',
+        'stripe_payment_intent_id',
+        'stripe_charge_id',
+        'stripe_client_secret',
     ];
     protected $casts = [
         'amount' => 'decimal:2',

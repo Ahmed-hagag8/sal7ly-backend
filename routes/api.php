@@ -22,6 +22,7 @@ use App\Http\Controllers\v1\Admin\DashboardController;
 use App\Http\Controllers\v1\Admin\CatalogController;
 use App\Http\Controllers\v1\AIController;
 use App\Http\Controllers\v1\Technician\LocationController;
+use App\Http\Controllers\v1\StripeWebhookController;
 
 
 // PUBLIC ROUTES
@@ -42,6 +43,9 @@ Route::get('/health', function () {
         'timestamp' => now()->toISOString(),
     ]);
 });
+
+// Stripe webhook (public — signature verified internally, no auth:sanctum)
+Route::post('/webhooks/stripe', [StripeWebhookController::class, 'handle']);
 
 
 // PROTECTED ROUTES (authentication required)
@@ -148,6 +152,7 @@ Route::middleware(['auth:sanctum', 'active', 'role:customer'])->prefix('customer
     Route::get('/requests/{id}/offers', [ServiceRequestController::class, 'offers']);
     Route::post('/requests/{requestId}/offers/{offerId}/accept', [ServiceRequestController::class, 'acceptOffer']);
     Route::post('/jobs/{id}/pay', [PaymentController::class, 'pay']);
+    Route::get('/jobs/{id}/payment-status', [PaymentController::class, 'status']);
     Route::get('/jobs', [ServiceRequestController::class, 'jobs']);
     Route::get('/jobs/{id}', [ServiceRequestController::class, 'showJob']);
     Route::post('/jobs/{id}/review', [ReviewController::class, 'store']);
