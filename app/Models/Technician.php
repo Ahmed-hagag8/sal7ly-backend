@@ -64,5 +64,13 @@ class Technician extends Model
     {
         return $this->hasMany(TechnicianDocument::class);
     }
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
+    public function favoritedBy()
+    {
+        return $this->belongsToMany(Customer::class, 'favorites');
+    }
 
 }

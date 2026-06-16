@@ -23,6 +23,7 @@ use App\Http\Controllers\v1\Admin\CatalogController;
 use App\Http\Controllers\v1\AIController;
 use App\Http\Controllers\v1\Technician\LocationController;
 use App\Http\Controllers\v1\StripeWebhookController;
+use App\Http\Controllers\v1\Customer\TechnicianBrowseController;
 
 
 // PUBLIC ROUTES
@@ -157,4 +158,12 @@ Route::middleware(['auth:sanctum', 'active', 'role:customer'])->prefix('customer
     Route::get('/jobs/{id}', [ServiceRequestController::class, 'showJob']);
     Route::post('/jobs/{id}/review', [ReviewController::class, 'store']);
     Route::get('/jobs/{id}/technician-location', [LocationController::class, 'show']);
+
+    // Browse technicians
+    Route::get('/technicians', [TechnicianBrowseController::class, 'index']);
+    Route::get('/technicians/{id}', [TechnicianBrowseController::class, 'show']);
+
+    // Favorites
+    Route::get('/favorites', [TechnicianBrowseController::class, 'favorites']);
+    Route::post('/favorites/{technicianId}', [TechnicianBrowseController::class, 'toggleFavorite']);
 });

@@ -37,4 +37,12 @@ class Customer extends Model
     {
         return $this->hasMany(Job::class);
     }
+    public function favorites()
+    {
+        return $this->hasMany(Favorite::class);
+    }
+    public function favoriteTechnicians()
+    {
+        return $this->belongsToMany(Technician::class, 'favorites');
+    }
 }
