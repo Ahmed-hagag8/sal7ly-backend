@@ -85,7 +85,7 @@ class OfferController extends Controller
         $technician = $request->user()->technician;
 
         /** @var \Illuminate\Pagination\LengthAwarePaginator $offers */
-        $offers = JobOffer::with(['serviceRequest.service', 'serviceRequest.customer.user'])
+        $offers = JobOffer::with(['serviceRequest.category', 'serviceRequest.customer.user'])
             ->where('technician_id', $technician->id)
             ->latest()
             ->paginate(10);

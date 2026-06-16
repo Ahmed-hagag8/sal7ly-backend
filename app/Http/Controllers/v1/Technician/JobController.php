@@ -16,7 +16,7 @@ class JobController extends Controller
     {
         $technician = $request->user()->technician;
 
-        $query = Job::with(['serviceRequest.service', 'customer.user'])
+        $query = Job::with(['serviceRequest.category', 'customer.user'])
             ->where('technician_id', $technician->id);
 
         if ($request->has('status')) {
@@ -52,7 +52,7 @@ class JobController extends Controller
     public function show(Request $request, $id)
     {
         $technician = $request->user()->technician;
-        $job = Job::with(['serviceRequest.service', 'serviceRequest.city', 'serviceRequest.images', 'customer.user', 'payment'])
+        $job = Job::with(['serviceRequest.category', 'serviceRequest.city', 'serviceRequest.images', 'customer.user', 'payment'])
             ->where('technician_id', $technician->id)
             ->findOrFail($id);
 
@@ -61,7 +61,7 @@ class JobController extends Controller
             'data' => [
                 'id' => $job->id,
                 'job_number' => $job->job_number,
-                'service' => $job->serviceRequest->service->name,
+                'service' => $job->serviceRequest->category->name ?? null,
                 'title' => $job->serviceRequest->title,
                 'description' => $job->serviceRequest->description,
                 'address' => $job->serviceRequest->address,
