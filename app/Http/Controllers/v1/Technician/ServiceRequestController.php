@@ -51,6 +51,7 @@ class ServiceRequestController extends Controller
                 'customer_name' => $req->customer->user->name ?? 'Unknown',
                 'preferred_date' => $req->preferred_date,
                 'ai_predicted_price' => $req->ai_predicted_price,
+                'customer_proposed_price' => $req->customer_proposed_price,
                 'images_count' => $req->images_count,
                 'created_at' => $req->created_at,
             ]),
@@ -106,6 +107,7 @@ class ServiceRequestController extends Controller
                 'preferred_date' => $serviceRequest->preferred_date,
                 'preferred_time' => $serviceRequest->preferred_time,
                 'ai_predicted_price' => $serviceRequest->ai_predicted_price,
+                'customer_proposed_price' => $serviceRequest->customer_proposed_price,
                 'status' => $serviceRequest->status,
                 'images' => $serviceRequest->images->map(fn($img) => [
                     'id' => $img->id,

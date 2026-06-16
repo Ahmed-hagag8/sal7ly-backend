@@ -24,6 +24,8 @@ class CreateServiceRequestRequest extends FormRequest
             'preferred_time' => 'nullable|date_format:H:i',
             'images' => 'nullable|array|max:5',
             'images.*' => 'image|mimes:jpeg,png,jpg',
+            'customer_proposed_price' => 'required|numeric|min:1',
+            'ai_predicted_price' => 'nullable|numeric|min:0',
         ];
     }
 

@@ -111,6 +111,8 @@ class ServiceRequestController extends Controller
                 'preferred_date' => $request->preferred_date,
                 'preferred_time' => $request->preferred_time,
                 'status' => 'pending',
+                'customer_proposed_price' => $request->customer_proposed_price,
+                'ai_predicted_price' => $request->ai_predicted_price,
             ]);
 
             // Upload images if provided (with AI audit data)
@@ -175,6 +177,7 @@ class ServiceRequestController extends Controller
                 'preferred_time' => $serviceRequest->preferred_time,
                 'status' => $serviceRequest->status,
                 'ai_predicted_price' => $serviceRequest->ai_predicted_price,
+                'customer_proposed_price' => $serviceRequest->customer_proposed_price,
                 'images' => $serviceRequest->images->map(fn($img) => [
                     'id' => $img->id,
                     'url' => asset('storage/' . $img->path),
@@ -245,6 +248,7 @@ class ServiceRequestController extends Controller
                 'category' => $req->category->name ?? null,
                 'city' => $req->city->name,
                 'status' => $req->status,
+                'customer_proposed_price' => $req->customer_proposed_price,
                 'offers_count' => $req->offers_count,
                 'created_at' => $req->created_at,
             ]),

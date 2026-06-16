@@ -21,11 +21,13 @@ class ServiceRequest extends Model
         'preferred_date',
         'preferred_time',
         'status',
-        'ai_predicted_price'
+        'ai_predicted_price',
+        'customer_proposed_price'
     ];
     protected $casts = [
         'preferred_date' => 'date',
         'ai_predicted_price' => 'decimal:2',
+        'customer_proposed_price' => 'decimal:2',
     ];
     public function customer()
     {

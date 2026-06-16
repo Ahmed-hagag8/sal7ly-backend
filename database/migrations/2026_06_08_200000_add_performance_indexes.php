@@ -16,11 +16,10 @@ return new class extends Migration
     public function up(): void
     {
         // service_requests: queried by status constantly
-        Schema::table('service_requests', function (Blueprint $table) {
-            $table->index('status', 'idx_sr_status');
-            $table->index(['customer_id', 'status'], 'idx_sr_customer_status');
-            $table->index(['city_id', 'service_id', 'status'], 'idx_sr_city_service_status');
-        });
+        // Individual statements to handle indexes that may already exist from a partial migration run
+        try { \DB::statement('ALTER TABLE `service_requests` ADD INDEX `idx_sr_status` (`status`)'); } catch (\Exception $e) {}
+        try { \DB::statement('ALTER TABLE `service_requests` ADD INDEX `idx_sr_customer_status` (`customer_id`, `status`)'); } catch (\Exception $e) {}
+        try { \DB::statement('ALTER TABLE `service_requests` ADD INDEX `idx_sr_city_service_status` (`city_id`, `category_id`, `status`)'); } catch (\Exception $e) {}
 
         // jobs: filtered by technician+status and customer+status
         Schema::table('jobs', function (Blueprint $table) {
@@ -98,7 +97,7 @@ return new class extends Migration
         }
         if ($hasIndex('service_requests', 'idx_sr_city_service_status')) {
             $ensureIndexForFK('service_requests', 'city_id', 'service_requests_city_id_idx', 'idx_sr_city_service_status');
-            $ensureIndexForFK('service_requests', 'service_id', 'service_requests_service_id_idx', 'idx_sr_city_service_status');
+            $ensureIndexForFK('service_requests', 'category_id', 'service_requests_category_id_idx', 'idx_sr_city_service_status');
         }
 
         Schema::table('service_requests', function (Blueprint $table) use ($hasIndex) {
