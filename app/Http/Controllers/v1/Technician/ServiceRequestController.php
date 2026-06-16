@@ -73,6 +73,13 @@ class ServiceRequestController extends Controller
     {
         $technician = $request->user()->technician;
 
+        if (!$technician) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Technician profile not found',
+            ], 404);
+        }
+
         $serviceRequest = ServiceRequest::with(['category', 'city', 'customer.user', 'images'])
             ->where('city_id', $technician->city_id)
             ->where('category_id', $technician->service_category_id)
