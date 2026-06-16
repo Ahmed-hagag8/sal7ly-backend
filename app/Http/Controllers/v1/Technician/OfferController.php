@@ -33,8 +33,8 @@ class OfferController extends Controller
         }
 
         // Check if already made offer
-        $existing = JobOffer::where('service_request_id', $requestId)
-            ->where('technician_id', $technician->id)
+        $existing = JobOffer::where(['service_request_id' => $requestId])
+            ->where(['technician_id' => $technician->id])
             ->first();
 
         if ($existing) {
@@ -86,7 +86,7 @@ class OfferController extends Controller
 
         /** @var \Illuminate\Pagination\LengthAwarePaginator $offers */
         $offers = JobOffer::with(['serviceRequest.category', 'serviceRequest.customer.user'])
-            ->where('technician_id', $technician->id)
+            ->where(['technician_id' => $technician->id])
             ->latest()
             ->paginate(10);
 
@@ -116,8 +116,8 @@ class OfferController extends Controller
     {
         $technician = $request->user()->technician;
 
-        $offer = JobOffer::where('technician_id', $technician->id)
-            ->where('id', $id)
+        $offer = JobOffer::where(['technician_id' => $technician->id])
+            ->where(['id' => $id])
             ->first();
 
         if (!$offer || $offer->status !== 'pending') {

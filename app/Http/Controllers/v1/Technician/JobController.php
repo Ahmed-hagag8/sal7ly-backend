@@ -17,10 +17,10 @@ class JobController extends Controller
         $technician = $request->user()->technician;
 
         $query = Job::with(['serviceRequest.category', 'customer.user'])
-            ->where('technician_id', $technician->id);
+            ->where(['technician_id' => $technician->id]);
 
         if ($request->has('status')) {
-            $query->where('status', $request->status);
+            $query->where(['status' => $request->status]);
         }
         /** @var \Illuminate\Pagination\LengthAwarePaginator $jobs */
 
@@ -53,7 +53,7 @@ class JobController extends Controller
     {
         $technician = $request->user()->technician;
         $job = Job::with(['serviceRequest.category', 'serviceRequest.city', 'serviceRequest.images', 'customer.user', 'payment'])
-            ->where('technician_id', $technician->id)
+            ->where(['technician_id' => $technician->id])
             ->findOrFail($id);
 
         return response()->json([
@@ -80,8 +80,8 @@ class JobController extends Controller
                 'started_at' => $job->started_at,
                 'completed_at' => $job->completed_at,
                 'is_paid' => $job->payment !== null,
-                'has_reviewed' => \App\Models\Review::where('job_id', $job->id)
-                    ->where('type', 'technician_to_customer')->exists(),
+                'has_reviewed' => \App\Models\Review::where(['job_id' => $job->id])
+                    ->where(['type' => 'technician_to_customer'])->exists(),
                 'images' => $job->serviceRequest->images->map(fn($img) => [
                     'id' => $img->id,
                     'url' => asset('storage/' . $img->path),
@@ -96,8 +96,8 @@ class JobController extends Controller
      */
     public function start(Request $request, $id)
     {
-        $job = Job::where('technician_id', $request->user()->technician->id)
-            ->where('id', $id)
+        $job = Job::where(['technician_id' => $request->user()->technician->id])
+            ->where(['id' => $id])
             ->firstOrFail();
 
         if ($job->status !== 'scheduled') {
@@ -131,8 +131,8 @@ class JobController extends Controller
         ]);
 
         $job = Job::with(['serviceRequest', 'technician']) // PERF-12: Eager-load relations used below
-            ->where('technician_id', $request->user()->technician->id)
-            ->where('id', $id)
+            ->where(['technician_id' => $request->user()->technician->id])
+            ->where(['id' => $id])
             ->firstOrFail();
 
         if ($job->status !== 'in_progress') {
@@ -147,7 +147,7 @@ class JobController extends Controller
             'completed_at' => now(),
             'final_price' => $request->final_price ?? $job->agreed_price,
         ]);
-        TechnicianLocation::where('job_id', $job->id)->delete();
+        TechnicianLocation::where(['job_id' => $job->id])->delete();
 
         $job->serviceRequest->update(['status' => 'completed']);
 
