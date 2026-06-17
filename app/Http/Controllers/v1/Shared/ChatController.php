@@ -22,7 +22,7 @@ class ChatController extends Controller
                   ->orWhere('participant_2_id', $userId);
             })
             ->with(['participant1', 'participant2', 'job'])
-            ->latest('last_message_at')
+            ->orderByRaw('last_message_at DESC')
             ->paginate(10);
 
         return response()->json([
@@ -65,8 +65,11 @@ class ChatController extends Controller
             ->paginate(20);
 
         // Mark as read
-        Message::where('conversation_id', $conversationId)
-            ->where('sender_id', '!=', $userId)
+        Message::query()
+            ->where([
+                ['conversation_id', '=', $conversationId],
+                ['sender_id', '!=', $userId]
+            ])
             ->update(['is_read' => true]);
 
         return response()->json([
