@@ -94,6 +94,7 @@ class OfferController extends Controller
             'success' => true,
             'data' => $offers->getCollection()->map(fn($offer) => [
                 'id' => $offer->id,
+                'request_id' => $offer->service_request_id,
                 'request_number' => $offer->serviceRequest->request_number,
                 'title' => $offer->serviceRequest->title,
                 'offered_price' => $offer->offered_price,
