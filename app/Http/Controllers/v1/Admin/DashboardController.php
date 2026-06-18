@@ -310,6 +310,67 @@ class DashboardController extends Controller
     }
 
     /**
+     * Manually add a new transaction to a wallet
+     * POST /admin/billing/wallets/{id}/transactions
+     */
+    public function storeTransaction(Request $request, $id)
+    {
+        $request->validate([
+            'type' => 'required|in:credit,debit',
+            'amount' => 'required|numeric|min:0.01',
+            'description' => 'nullable|string|max:255',
+        ]);
+
+        $wallet = \App\Models\Wallet::findOrFail($id);
+        
+        DB::beginTransaction();
+        try {
+            $balanceBefore = $wallet->balance;
+            
+            if ($request->type === 'credit') {
+                $wallet->balance += $request->amount;
+                $wallet->total_earned += $request->amount;
+            } else {
+                if ($wallet->balance < $request->amount) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Insufficient wallet balance for this debit transaction',
+                    ], 400);
+                }
+                $wallet->balance -= $request->amount;
+            }
+            
+            $wallet->save();
+
+            $transaction = \App\Models\Transaction::create([
+                'transaction_number' => 'TXN-MANUAL' . rand(1000, 9999),
+                'wallet_id' => $wallet->id,
+                'type' => $request->type,
+                'amount' => $request->amount,
+                'balance_before' => $balanceBefore,
+                'balance_after' => $wallet->balance,
+                'reference_type' => 'manual',
+                'reference_id' => auth()->id(),
+                'description' => $request->description ?? 'Manual adjustment by admin',
+                'created_at' => now(),
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Transaction added successfully',
+                'data' => $transaction,
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to add transaction: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+    /**
      * Request statistics for charts
      */
     public function requestStats(Request $request)
