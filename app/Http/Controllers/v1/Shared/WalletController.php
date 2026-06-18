@@ -60,4 +60,72 @@ class WalletController extends Controller
             'data' => $transactions,
         ]);
     }
+
+    /**
+     * Initiate wallet funding via Stripe
+     */
+    public function fund(Request $request, \App\Services\StripeService $stripeService)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:50',
+        ]);
+
+        $user = $request->user();
+
+        try {
+            $paymentIntent = $stripeService->createPaymentIntent($request->amount, [
+                'type' => 'wallet_fund',
+                'user_id' => $user->id,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment initiated',
+                'data' => [
+                    'amount' => $request->amount,
+                    'status' => 'pending',
+                    'payment_intent_id' => $paymentIntent->id,
+                    'stripe_client_secret' => $paymentIntent->client_secret,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Wallet funding failed', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to initiate funding. Please try again.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Check the status of a wallet funding attempt
+     */
+    public function fundStatus(Request $request, $intentId)
+    {
+        $wallet = $request->user()->wallet;
+
+        $transaction = \App\Models\Transaction::where('wallet_id', $wallet->id)
+            ->where('reference_type', 'stripe_topup')
+            ->where('description', 'LIKE', '%' . $intentId . '%')
+            ->first();
+
+        if ($transaction) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'status' => 'completed',
+                    'amount' => $transaction->amount,
+                    'transaction_number' => $transaction->transaction_number,
+                    'paid_at' => $transaction->created_at,
+                ],
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'status' => 'pending',
+            ],
+        ]);
+    }
 }

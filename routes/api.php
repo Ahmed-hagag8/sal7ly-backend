@@ -65,6 +65,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::delete('/account', [ProfileController::class, 'deleteAccount']);
     Route::get('/wallet', [WalletController::class, 'show']);
     Route::get('/wallet/transactions', [WalletController::class, 'transactions']);
+    Route::post('/wallet/fund', [WalletController::class, 'fund']);
+    Route::get('/wallet/fund/status/{intent_id}', [WalletController::class, 'fundStatus']);
     Route::get('/conversations', [ChatController::class, 'index']);
     Route::get('/conversations/{id}/messages', [ChatController::class, 'messages']);
     Route::post('/conversations/{id}/messages', [ChatController::class, 'send']);
