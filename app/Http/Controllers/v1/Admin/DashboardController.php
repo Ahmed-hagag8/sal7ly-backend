@@ -28,10 +28,14 @@ class DashboardController extends Controller
                 COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed,
                 COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled
             ", [
-                now()->month, now()->year,
-                now()->subMonth()->month, now()->subMonth()->year,
-                now()->month, now()->year,
-                now()->subMonth()->month, now()->subMonth()->year,
+                now()->month,
+                now()->year,
+                now()->subMonth()->month,
+                now()->subMonth()->year,
+                now()->month,
+                now()->year,
+                now()->subMonth()->month,
+                now()->subMonth()->year,
             ])->first();
 
             $requestsGrowth = $requestStats->last_month > 0
@@ -210,11 +214,14 @@ class DashboardController extends Controller
             'data' => collect($transactions->items())->map(fn($t) => [
                 'transaction_id' => $t->transaction_number,
                 'date' => $t->created_at ? $t->created_at->format('Y-m-d') : null,
-                'customer' => $t->wallet?->user?->name ?? 'Deleted User',
-                'technician' => $t->wallet?->user?->role ?? 'N/A',
-                'category' => ucfirst($t->type),
+                'user_name' => $t->wallet?->user?->name ?? 'Deleted User',
+                'role' => $t->wallet?->user?->role ?? 'N/A',
+                'type' => $t->type,
                 'amount' => $t->amount,
-                'status' => 'completed',
+                'balance_before' => $t->balance_before,
+                'balance_after' => $t->balance_after,
+                'description' => $t->description,
+                'reference_type' => $t->reference_type,
             ]),
             'meta' => [
                 'current_page' => $transactions->currentPage(),
@@ -277,7 +284,9 @@ class DashboardController extends Controller
     public function wallets(Request $request)
     {
         $query = \App\Models\Wallet::with([
-            'user', 'user.customer', 'user.technician',
+            'user',
+            'user.customer',
+            'user.technician',
             'transactions' => fn($q) => $q->latest()->limit(1),
         ]);
 
@@ -325,11 +334,11 @@ class DashboardController extends Controller
         ]);
 
         $wallet = \App\Models\Wallet::findOrFail($id);
-        
+
         DB::beginTransaction();
         try {
             $balanceBefore = $wallet->balance;
-            
+
             if ($request->type === 'credit') {
                 $wallet->balance += $request->amount;
                 $wallet->total_earned += $request->amount;
@@ -342,7 +351,7 @@ class DashboardController extends Controller
                 }
                 $wallet->balance -= $request->amount;
             }
-            
+
             $wallet->save();
 
             $transaction = \App\Models\Transaction::create([
@@ -742,7 +751,7 @@ class DashboardController extends Controller
                     'request_number' => $req->request_number,
                     'title' => $req->title,
                     'description' => $req->description,
-                    'status' => match($req->status) {
+                    'status' => match ($req->status) {
                         'pending', 'open' => 'waiting',
                         'assigned', 'in_progress' => 'in_progress',
                         default => $req->status,
