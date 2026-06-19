@@ -210,14 +210,11 @@ class DashboardController extends Controller
             'data' => collect($transactions->items())->map(fn($t) => [
                 'transaction_id' => $t->transaction_number,
                 'date' => $t->created_at ? $t->created_at->format('Y-m-d') : null,
-                'user_name' => $t->wallet?->user?->name ?? 'Deleted User',
-                'role' => $t->wallet?->user?->role ?? 'N/A',
-                'type' => $t->type,
+                'customer' => $t->wallet?->user?->name ?? 'Deleted User',
+                'technician' => $t->wallet?->user?->role ?? 'N/A',
+                'category' => ucfirst($t->type),
                 'amount' => $t->amount,
-                'balance_before' => $t->balance_before,
-                'balance_after' => $t->balance_after,
-                'description' => $t->description,
-                'reference_type' => $t->reference_type,
+                'status' => 'completed',
             ]),
             'meta' => [
                 'current_page' => $transactions->currentPage(),
