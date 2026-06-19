@@ -155,8 +155,8 @@ class PaymentService
             \App\Services\NotificationService::send(
                 $technician->user_id,
                 'payment_received',
-                'Payment Received!',
-                "Payment of {$payment->amount} EGP received for Job #{$job->job_number}"
+                'تم استلام الدفعة!',
+                "تم استلام دفعة بقيمة {$payment->amount} جنيه للمهمة رقم {$job->job_number}"
             );
 
             return $payment;

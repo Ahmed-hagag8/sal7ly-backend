@@ -333,8 +333,8 @@ class ServiceRequestController extends Controller
             NotificationService::send(
                 $offer->technician->user_id,
                 'offer_accepted',
-                'Offer Accepted!',
-                'Customer accepted your offer. Start the job!'
+                'تم قبول العرض!',
+                "وافق {$customer->user->name} على عرضك. ابدأ المهمة!"
             );
         });
         return response()->json([

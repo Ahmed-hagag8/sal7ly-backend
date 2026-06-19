@@ -62,8 +62,8 @@ class OfferController extends Controller
         NotificationService::send(
             $serviceRequest->customer->user_id,
             'new_offer',
-            'New Offer!',
-            "Technician offered {$offer->offered_price} EGP for your request"
+            'عرض جديد!',
+            "قدم {$technician->user->name} عرضاً بقيمة {$offer->offered_price} جنيه لطلبك"
         );
 
         return response()->json([
