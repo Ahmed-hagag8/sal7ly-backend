@@ -196,22 +196,28 @@ class DashboardController extends Controller
      */
     public function transactions(Request $request)
     {
-        $query = Payment::with(['customer.user', 'technician.user', 'job.serviceRequest.category']);
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
+        $query = \App\Models\Transaction::with(['wallet.user']);
+
+        if ($request->has('type')) {
+            $query->where('type', $request->type);
         }
+
         /** @var \Illuminate\Pagination\LengthAwarePaginator $transactions */
-        $transactions = $query->latest()->paginate(20);
+        $transactions = $query->latest('created_at')->paginate(20);
+
         return response()->json([
             'success' => true,
-            'data' => collect($transactions->items())->map(fn($p) => [
-                'transaction_id' => $p->payment_number,
-                'date' => $p->created_at->format('Y-m-d'),
-                'customer' => $p->customer?->user?->name ?? 'Deleted Customer',
-                'technician' => $p->technician?->user?->name ?? 'Deleted Technician',
-                'category' => $p->job?->serviceRequest?->category?->name ?? 'N/A',
-                'amount' => $p->amount,
-                'status' => $p->status,
+            'data' => collect($transactions->items())->map(fn($t) => [
+                'transaction_id' => $t->transaction_number,
+                'date' => $t->created_at ? $t->created_at->format('Y-m-d') : null,
+                'user_name' => $t->wallet?->user?->name ?? 'Deleted User',
+                'role' => $t->wallet?->user?->role ?? 'N/A',
+                'type' => $t->type,
+                'amount' => $t->amount,
+                'balance_before' => $t->balance_before,
+                'balance_after' => $t->balance_after,
+                'description' => $t->description,
+                'reference_type' => $t->reference_type,
             ]),
             'meta' => [
                 'current_page' => $transactions->currentPage(),
