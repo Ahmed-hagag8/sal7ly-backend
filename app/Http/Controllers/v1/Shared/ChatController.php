@@ -36,6 +36,9 @@ class ChatController extends Controller
                 'other_user_image' => $c->participant_1_id == $userId
                     ? ($c->participant2->profile_image ? asset('storage/' . $c->participant2->profile_image) : null)
                     : ($c->participant1->profile_image ? asset('storage/' . $c->participant1->profile_image) : null),
+                'other_user_phone' => $c->participant_1_id == $userId
+                    ? $c->participant2->phone
+                    : $c->participant1->phone,
                 'last_message_at' => $c->last_message_at,
             ]),
             'meta' => [
@@ -117,6 +120,26 @@ class ChatController extends Controller
             'participant_1_id' => $job->customer->user_id,
             'participant_2_id' => $job->technician->user_id,
             'last_message_at' => now(),
+        ]);
+    }
+
+    /**
+     * Delete a conversation
+     */
+    public function destroy(Request $request, $conversationId)
+    {
+        $userId = $request->user()->id;
+
+        $conversation = Conversation::where(function ($q) use ($userId) {
+            $q->where('participant_1_id', $userId)
+                ->orWhere('participant_2_id', $userId);
+        })->findOrFail($conversationId);
+
+        $conversation->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Conversation deleted successfully',
         ]);
     }
 }

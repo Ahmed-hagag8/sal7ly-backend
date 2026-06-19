@@ -70,6 +70,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/conversations', [ChatController::class, 'index']);
     Route::get('/conversations/{id}/messages', [ChatController::class, 'messages']);
     Route::post('/conversations/{id}/messages', [ChatController::class, 'send']);
+    Route::delete('/conversations/{id}', [ChatController::class, 'destroy']);
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead']);
     Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
