@@ -23,6 +23,9 @@ RUN apt-get update && apt-get install -y \
 # Get latest Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Increase PHP upload limits
+RUN echo "upload_max_filesize = 60M\npost_max_size = 65M\nmemory_limit = 256M" > /usr/local/etc/php/conf.d/uploads.ini
+
 # Set working directory
 WORKDIR /var/www/html
 
