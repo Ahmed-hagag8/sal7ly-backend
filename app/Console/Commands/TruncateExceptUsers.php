@@ -32,7 +32,19 @@ class TruncateExceptUsers extends Command
             return;
         }
 
-        $except = ['users', 'migrations', 'personal_access_tokens', 'password_reset_tokens'];
+        // We must also keep customers, technicians, and wallets, because they are permanently tied to users.
+        // If we delete them, the existing users will crash the application.
+        $except = [
+            'users', 
+            'cities', 
+            'categories', 
+            'customers', 
+            'technicians', 
+            'wallets',
+            'migrations', 
+            'personal_access_tokens', 
+            'password_reset_tokens'
+        ];
 
         $tables = [];
         foreach (DB::select('SHOW TABLES') as $tableObj) {
@@ -47,9 +59,15 @@ class TruncateExceptUsers extends Command
             }
         });
 
+        // Delete all users except ID 1, along with their core profile data
+        DB::table('customers')->where('user_id', '!=', 1)->delete();
+        DB::table('technicians')->where('user_id', '!=', 1)->delete();
+        DB::table('wallets')->where('user_id', '!=', 1)->delete();
+        DB::table('users')->where('id', '!=', 1)->delete();
+
         Schema::enableForeignKeyConstraints();
 
         $this->newLine();
-        $this->info('Database truncated successfully (except excluded tables).');
+        $this->info('Database truncated successfully (Kept cities, categories, and User ID 1).');
     }
 }
