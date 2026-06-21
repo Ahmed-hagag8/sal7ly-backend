@@ -33,8 +33,15 @@ WORKDIR /var/www/html
 RUN echo '<VirtualHost *:80>\n\
     ServerName localhost\n\
     DocumentRoot /var/www/html/public\n\
+    Alias /storage /var/www/html/storage/app/public\n\
     <Directory /var/www/html/public>\n\
+        Options +FollowSymLinks\n\
         AllowOverride All\n\
+        Require all granted\n\
+    </Directory>\n\
+    <Directory /var/www/html/storage/app/public>\n\
+        Options +FollowSymLinks\n\
+        AllowOverride None\n\
         Require all granted\n\
     </Directory>\n\
     ErrorLog ${APACHE_LOG_DIR}/error.log\n\
