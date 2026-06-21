@@ -34,8 +34,8 @@ class ChatController extends Controller
                     ? $c->participant2->name
                     : $c->participant1->name,
                 'other_user_image' => $c->participant_1_id == $userId
-                    ? $c->participant2->profile_image_url
-                    : $c->participant1->profile_image_url,
+                    ? ($c->participant2->profile_image ? asset('storage/' . $c->participant2->profile_image) : null)
+                    : ($c->participant1->profile_image ? asset('storage/' . $c->participant1->profile_image) : null),
                 'other_user_phone' => $c->participant_1_id == $userId
                     ? $c->participant2->phone
                     : $c->participant1->phone,

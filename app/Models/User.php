@@ -63,12 +63,4 @@ class User extends Authenticatable
     {
         return $this->role === 'technician';
     }
-
-    public function getProfileImageUrlAttribute(): ?string
-    {
-        if ($this->profile_image && \Illuminate\Support\Facades\Storage::disk('public')->exists($this->profile_image)) {
-            return asset('storage/' . $this->profile_image);
-        }
-        return null;
-    }
 }
