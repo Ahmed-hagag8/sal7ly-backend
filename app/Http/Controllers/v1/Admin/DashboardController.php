@@ -17,26 +17,28 @@ class DashboardController extends Controller
     public function stats()
     {
         return Cache::remember('admin_dashboard_stats', 60, function () {
+            $startThisMonth = now()->startOfMonth();
+            $endThisMonth = now()->endOfMonth();
+            $startLastMonth = now()->subMonth()->startOfMonth();
+            $endLastMonth = now()->subMonth()->endOfMonth();
+
             // PERF-02: Combine ServiceRequest counts into a single query (was 9 separate queries)
+            // PERF-13: Use explicit date ranges instead of SQL MONTH()/YEAR() functions to allow index usage
             $requestStats = ServiceRequest::selectRaw("
-                COUNT(CASE WHEN MONTH(created_at) = ? AND YEAR(created_at) = ? THEN 1 END) as this_month,
-                COUNT(CASE WHEN MONTH(created_at) = ? AND YEAR(created_at) = ? THEN 1 END) as last_month,
-                COUNT(CASE WHEN MONTH(created_at) = ? AND YEAR(created_at) = ? AND status = 'cancelled' THEN 1 END) as cancelled_this_month,
-                COUNT(CASE WHEN MONTH(created_at) = ? AND YEAR(created_at) = ? AND status = 'cancelled' THEN 1 END) as cancelled_last_month,
+                COUNT(CASE WHEN created_at BETWEEN ? AND ? THEN 1 END) as this_month,
+                COUNT(CASE WHEN created_at BETWEEN ? AND ? THEN 1 END) as last_month,
+                COUNT(CASE WHEN created_at BETWEEN ? AND ? AND status = 'cancelled' THEN 1 END) as cancelled_this_month,
+                COUNT(CASE WHEN created_at BETWEEN ? AND ? AND status = 'cancelled' THEN 1 END) as cancelled_last_month,
                 COUNT(*) as total,
                 COUNT(CASE WHEN status IN ('pending','open') THEN 1 END) as waiting,
                 COUNT(CASE WHEN status IN ('assigned','in_progress') THEN 1 END) as in_progress,
                 COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed,
                 COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled
             ", [
-                now()->month,
-                now()->year,
-                now()->subMonth()->month,
-                now()->subMonth()->year,
-                now()->month,
-                now()->year,
-                now()->subMonth()->month,
-                now()->subMonth()->year,
+                $startThisMonth, $endThisMonth,
+                $startLastMonth, $endLastMonth,
+                $startThisMonth, $endThisMonth,
+                $startLastMonth, $endLastMonth,
             ])->first();
 
             $requestsGrowth = $requestStats->last_month > 0
@@ -53,9 +55,9 @@ class DashboardController extends Controller
 
             // Customer growth (2 queries → 1)
             $customerStats = Customer::selectRaw("
-                COUNT(CASE WHEN MONTH(created_at) = ? THEN 1 END) as this_month,
-                COUNT(CASE WHEN MONTH(created_at) = ? THEN 1 END) as last_month
-            ", [now()->month, now()->subMonth()->month])->first();
+                COUNT(CASE WHEN created_at BETWEEN ? AND ? THEN 1 END) as this_month,
+                COUNT(CASE WHEN created_at BETWEEN ? AND ? THEN 1 END) as last_month
+            ", [$startThisMonth, $endThisMonth, $startLastMonth, $endLastMonth])->first();
 
             $customersGrowth = $customerStats->last_month > 0
                 ? round((($customerStats->this_month - $customerStats->last_month) / $customerStats->last_month) * 100, 1)
@@ -127,16 +129,20 @@ class DashboardController extends Controller
      */
     public function recentActivity()
     {
-        return response()->json([
-            'success' => true,
-            'data' => [
+        $data = Cache::remember('admin_dashboard_recent_activity', 60, function () {
+            return [
                 'recent_jobs' => Job::with('customer.user', 'technician.user')
                     ->latest()->take(5)->get(),
                 'recent_requests' => ServiceRequest::with('customer.user')
                     ->latest()->take(5)->get(),
                 'pending_withdrawals' => Withdrawal::with('user')
                     ->where('status', 'pending')->take(5)->get(),
-            ],
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
         ]);
     }
 
@@ -288,7 +294,10 @@ class DashboardController extends Controller
             'user',
             'user.customer',
             'user.technician',
-            'transactions' => fn($q) => $q->latest()->limit(1),
+        ])->addSelect(['latest_transaction_type' => \App\Models\Transaction::select('type')
+            ->whereColumn('wallet_id', 'wallets.id')
+            ->latest()
+            ->limit(1)
         ]);
 
         if ($request->has('role')) {
@@ -310,7 +319,7 @@ class DashboardController extends Controller
                 'earnings' => $w->total_earned,
                 'total_withdrawn' => $w->total_withdrawn,
                 'last_transaction' => $w->updated_at->format('Y-m-d'),
-                'type' => $w->transactions->first()?->type ?? 'N/A',
+                'type' => $w->latest_transaction_type ?? 'N/A',
                 'status' => 'active',
             ]),
             'meta' => [
@@ -390,12 +399,15 @@ class DashboardController extends Controller
     {
         $period = $request->period ?? 'month'; // week, month, year
 
-        $requests = ServiceRequest::selectRaw('DATE(created_at) as date, COUNT(*) as total')
-            ->when($period === 'week', fn($q) => $q->where('created_at', '>=', now()->subWeek()))
-            ->when($period === 'month', fn($q) => $q->where('created_at', '>=', now()->subMonth()))
-            ->when($period === 'year', fn($q) => $q->where('created_at', '>=', now()->subYear()))
-            ->groupBy('date')
-            ->get();
+        $requests = Cache::remember("admin_dashboard_request_stats_{$period}", 60, function () use ($period) {
+            return ServiceRequest::selectRaw('DATE(created_at) as date, COUNT(*) as total')
+                ->when($period === 'week', fn($q) => $q->where('created_at', '>=', now()->subWeek()))
+                ->when($period === 'month', fn($q) => $q->where('created_at', '>=', now()->subMonth()))
+                ->when($period === 'year', fn($q) => $q->where('created_at', '>=', now()->subYear()))
+                ->groupBy('date')
+                ->get();
+        });
+
         return response()->json([
             'success' => true,
             'data' => $requests,
@@ -406,10 +418,13 @@ class DashboardController extends Controller
      */
     public function serviceDistribution()
     {
-        $distribution = ServiceRequest::join('service_categories', 'service_requests.category_id', '=', 'service_categories.id')
-            ->selectRaw('service_categories.name as category, COUNT(*) as count')
-            ->groupBy('service_categories.name')
-            ->get();
+        $distribution = Cache::remember('admin_dashboard_service_dist', 60, function () {
+            return ServiceRequest::join('service_categories', 'service_requests.category_id', '=', 'service_categories.id')
+                ->selectRaw('service_categories.name as category, COUNT(*) as count')
+                ->groupBy('service_categories.name')
+                ->get();
+        });
+
         return response()->json([
             'success' => true,
             'data' => $distribution,
@@ -420,12 +435,15 @@ class DashboardController extends Controller
      */
     public function revenueByService()
     {
-        $revenue = Payment::join('jobs', 'payments.job_id', '=', 'jobs.id')
-            ->join('service_requests', 'jobs.service_request_id', '=', 'service_requests.id')
-            ->join('service_categories', 'service_requests.category_id', '=', 'service_categories.id')
-            ->selectRaw('service_categories.name as category, SUM(payments.amount) as total')
-            ->groupBy('service_categories.name')
-            ->get();
+        $revenue = Cache::remember('admin_dashboard_revenue_dist', 60, function () {
+            return Payment::join('jobs', 'payments.job_id', '=', 'jobs.id')
+                ->join('service_requests', 'jobs.service_request_id', '=', 'service_requests.id')
+                ->join('service_categories', 'service_requests.category_id', '=', 'service_categories.id')
+                ->selectRaw('service_categories.name as category, SUM(payments.amount) as total')
+                ->groupBy('service_categories.name')
+                ->get();
+        });
+
         return response()->json([
             'success' => true,
             'data' => $revenue,
@@ -436,12 +454,15 @@ class DashboardController extends Controller
      */
     public function topTechnicians()
     {
-        $technicians = Technician::with('user:id,name')
-            ->whereHas('user')
-            ->orderByDesc('average_rating')
-            ->orderByDesc('total_jobs_completed')
-            ->take(10)
-            ->get(['id', 'user_id', 'average_rating', 'total_jobs_completed']);
+        $technicians = Cache::remember('admin_dashboard_top_technicians', 60, function () {
+            return Technician::with('user:id,name')
+                ->whereHas('user')
+                ->orderByDesc('average_rating')
+                ->orderByDesc('total_jobs_completed')
+                ->take(10)
+                ->get(['id', 'user_id', 'average_rating', 'total_jobs_completed']);
+        });
+
         return response()->json([
             'success' => true,
             'data' => $technicians->map(fn($t) => [
@@ -457,17 +478,23 @@ class DashboardController extends Controller
      */
     public function customerSatisfaction()
     {
-        $avgRating = Review::avg('rating') ?? 0;
-        $totalReviews = Review::count();
-        $satisfactionPercent = round(($avgRating / 5) * 100, 1);
+        $data = Cache::remember('admin_dashboard_satisfaction', 60, function () {
+            // PERF: Combined two queries into one
+            $stats = Review::selectRaw('AVG(rating) as avg_rating, COUNT(id) as total')->first();
+            $avgRating = $stats->avg_rating ?? 0;
+            $totalReviews = $stats->total ?? 0;
+            $satisfactionPercent = round(($avgRating / 5) * 100, 1);
 
-        return response()->json([
-            'success' => true,
-            'data' => [
+            return [
                 'satisfaction_percent' => $satisfactionPercent,
                 'average_rating' => round($avgRating, 2),
                 'total_reviews' => $totalReviews,
-            ],
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
         ]);
     }
 
@@ -476,31 +503,35 @@ class DashboardController extends Controller
      */
     public function requestsBreakdown()
     {
-        // PERF-09: Add a 12-month window to prevent unbounded data growth
-        $startDate = now()->subMonths(12)->startOfMonth();
+        $data = Cache::remember('admin_dashboard_requests_breakdown', 60, function () {
+            // PERF-09: Add a 12-month window to prevent unbounded data growth
+            $startDate = now()->subMonths(12)->startOfMonth();
 
-        $completed = ServiceRequest::whereIn('status', ['assigned', 'in_progress', 'completed'])
-            ->where('created_at', '>=', $startDate)
-            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as count")
-            ->groupBy('month')
-            ->pluck('count', 'month');
+            $completed = ServiceRequest::whereIn('status', ['assigned', 'in_progress', 'completed'])
+                ->where('created_at', '>=', $startDate)
+                ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as count")
+                ->groupBy('month')
+                ->pluck('count', 'month');
 
-        $cancelled = ServiceRequest::where('status', 'cancelled')
-            ->where('created_at', '>=', $startDate)
-            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as count")
-            ->groupBy('month')
-            ->pluck('count', 'month');
+            $cancelled = ServiceRequest::where('status', 'cancelled')
+                ->where('created_at', '>=', $startDate)
+                ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as count")
+                ->groupBy('month')
+                ->pluck('count', 'month');
 
-        // Merge all months
-        $months = $completed->keys()->merge($cancelled->keys())->unique()->sort();
+            // Merge all months
+            $months = $completed->keys()->merge($cancelled->keys())->unique()->sort();
 
-        return response()->json([
-            'success' => true,
-            'data' => $months->map(fn($m) => [
+            return $months->map(fn($m) => [
                 'month' => $m,
                 'completed' => $completed[$m] ?? 0,
                 'cancelled' => $cancelled[$m] ?? 0,
-            ])->values(),
+            ])->values();
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
         ]);
     }
 
@@ -509,23 +540,27 @@ class DashboardController extends Controller
      */
     public function serviceUtilization()
     {
-        // PERF-04: Group by city instead of exact lat/lng (which produced 1 row per request)
-        $locations = ServiceRequest::select('city_id')
-            ->with('city:id,name')
-            ->selectRaw('city_id, COUNT(*) as request_count, AVG(latitude) as avg_lat, AVG(longitude) as avg_lng')
-            ->whereNotNull('latitude')
-            ->whereNotNull('longitude')
-            ->groupBy('city_id')
-            ->get();
+        $data = Cache::remember('admin_dashboard_utilization', 60, function () {
+            // PERF-04: Group by city instead of exact lat/lng (which produced 1 row per request)
+            $locations = ServiceRequest::select('city_id')
+                ->with('city:id,name')
+                ->selectRaw('city_id, COUNT(*) as request_count, AVG(latitude) as avg_lat, AVG(longitude) as avg_lng')
+                ->whereNotNull('latitude')
+                ->whereNotNull('longitude')
+                ->groupBy('city_id')
+                ->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $locations->map(fn($l) => [
+            return $locations->map(fn($l) => [
                 'lat' => round($l->avg_lat, 4),
                 'lng' => round($l->avg_lng, 4),
                 'city' => $l->city->name ?? 'Unknown',
                 'count' => $l->request_count,
-            ]),
+            ]);
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
         ]);
     }
 
