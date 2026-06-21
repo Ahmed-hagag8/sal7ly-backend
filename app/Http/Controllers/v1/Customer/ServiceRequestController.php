@@ -7,6 +7,7 @@ use App\Http\Requests\v1\Customer\CreateServiceRequestRequest;
 use App\Models\ServiceImage;
 use App\Models\ServiceRequest;
 use App\Models\JobOffer;
+use App\Helpers\ImageHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -402,9 +403,7 @@ class ServiceRequestController extends Controller
                     'name' => $job->technician->user->name,
                     'phone' => $job->technician->user->phone,
                     'rating' => $job->technician->average_rating,
-                    'profile_image' => $job->technician->user->profile_image
-                        ? asset('storage/' . $job->technician->user->profile_image)
-                        : null,
+                    'profile_image' => ImageHelper::url($job->technician->user->profile_image),
                 ],
                 'agreed_price' => $job->agreed_price,
                 'final_price' => $job->final_price,

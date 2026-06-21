@@ -5,6 +5,7 @@ namespace App\Http\Controllers\v1\Customer;
 use App\Http\Controllers\Controller;
 use App\Models\Technician;
 use App\Models\Favorite;
+use App\Helpers\ImageHelper;
 use Illuminate\Http\Request;
 
 class TechnicianBrowseController extends Controller
@@ -109,9 +110,7 @@ class TechnicianBrowseController extends Controller
             'data' => collect($technicians->items())->map(fn($tech) => [
                 'id' => $tech->id,
                 'name' => $tech->user->name,
-                'profile_image' => $tech->user->profile_image
-                    ? asset('storage/' . $tech->user->profile_image)
-                    : null,
+                'profile_image' => ImageHelper::url($tech->user->profile_image),
                 'category' => $tech->category->name ?? null,
                 'category_ar' => $tech->category->name_ar ?? null,
                 'city' => $tech->city->name ?? null,
@@ -170,9 +169,7 @@ class TechnicianBrowseController extends Controller
                 'id' => $technician->id,
                 'name' => $technician->user->name,
                 'phone' => $technician->user->phone,
-                'profile_image' => $technician->user->profile_image
-                    ? asset('storage/' . $technician->user->profile_image)
-                    : null,
+                'profile_image' => ImageHelper::url($technician->user->profile_image),
                 'category' => $technician->category->name ?? null,
                 'category_ar' => $technician->category->name_ar ?? null,
                 'city' => $technician->city->name ?? null,
@@ -279,9 +276,7 @@ class TechnicianBrowseController extends Controller
                 return [
                     'id' => $tech->id,
                     'name' => $tech->user->name,
-                    'profile_image' => $tech->user->profile_image
-                        ? asset('storage/' . $tech->user->profile_image)
-                        : null,
+                    'profile_image' => ImageHelper::url($tech->user->profile_image),
                     'category' => $tech->category->name ?? null,
                     'category_ar' => $tech->category->name_ar ?? null,
                     'city' => $tech->city->name ?? null,

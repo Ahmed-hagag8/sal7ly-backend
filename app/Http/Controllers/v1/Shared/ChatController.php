@@ -5,6 +5,7 @@ namespace App\Http\Controllers\v1\Shared;
 use App\Http\Controllers\Controller;
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Helpers\ImageHelper;
 use Illuminate\Http\Request;
 
 class ChatController extends Controller
@@ -34,8 +35,8 @@ class ChatController extends Controller
                     ? $c->participant2->name
                     : $c->participant1->name,
                 'other_user_image' => $c->participant_1_id == $userId
-                    ? ($c->participant2->profile_image ? asset('storage/' . $c->participant2->profile_image) : null)
-                    : ($c->participant1->profile_image ? asset('storage/' . $c->participant1->profile_image) : null),
+                    ? ImageHelper::url($c->participant2->profile_image)
+                    : ImageHelper::url($c->participant1->profile_image),
                 'other_user_phone' => $c->participant_1_id == $userId
                     ? $c->participant2->phone
                     : $c->participant1->phone,

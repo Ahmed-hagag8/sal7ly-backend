@@ -4,6 +4,7 @@ namespace App\Http\Controllers\v1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\{User, Technician, Customer, Job, ServiceRequest, Payment, Withdrawal, Review};
+use App\Helpers\ImageHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
@@ -543,9 +544,7 @@ class DashboardController extends Controller
             'phone' => $user->phone,
             'role' => $user->role,
             'is_active' => $user->is_active,
-            'profile_image' => $user->profile_image
-                ? asset('storage/' . $user->profile_image)
-                : null,
+            'profile_image' => ImageHelper::url($user->profile_image),
             'email_verified_at' => $user->email_verified_at,
             'phone_verified_at' => $user->phone_verified_at,
             'created_at' => $user->created_at,

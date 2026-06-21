@@ -5,6 +5,7 @@ namespace App\Http\Controllers\v1\Shared;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Technician;
+use App\Helpers\ImageHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -36,9 +37,7 @@ class ProfileController extends Controller
             'email' => $user->email,
             'phone' => $user->phone,
             'role' => $user->role,
-            'profile_image' => $user->profile_image
-                ? asset('storage/' . $user->profile_image)
-                : null,
+            'profile_image' => ImageHelper::url($user->profile_image),
             'is_active' => $user->is_active,
             'created_at' => $user->created_at,
         ];
@@ -235,7 +234,7 @@ class ProfileController extends Controller
             'success' => true,
             'message' => 'Profile image uploaded successfully',
             'data' => [
-                'profile_image' => asset('storage/' . $path),
+                'profile_image' => ImageHelper::url($path),
             ],
         ]);
     }

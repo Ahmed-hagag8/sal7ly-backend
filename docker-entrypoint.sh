@@ -11,6 +11,13 @@ ln -sf /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mp
 ln -sf /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf
 
 echo "Running production optimizations..."
+
+# Auto-detect APP_URL on Railway (uses RAILWAY_PUBLIC_DOMAIN env var)
+if [ -n "$RAILWAY_PUBLIC_DOMAIN" ]; then
+    export APP_URL="https://${RAILWAY_PUBLIC_DOMAIN}"
+    echo "Railway detected — APP_URL set to ${APP_URL}"
+fi
+
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache

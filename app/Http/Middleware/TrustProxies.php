@@ -10,9 +10,13 @@ class TrustProxies extends Middleware
     /**
      * The trusted proxies for this application.
      *
+     * Set to '*' to trust all proxies. Required for Railway, Heroku, and
+     * similar PaaS platforms that sit behind a reverse proxy / load balancer.
+     * Without this, asset() generates http:// URLs instead of https://.
+     *
      * @var array<int, string>|string|null
      */
-    protected $proxies;
+    protected $proxies = '*';
 
     /**
      * The headers that should be used to detect proxies.
