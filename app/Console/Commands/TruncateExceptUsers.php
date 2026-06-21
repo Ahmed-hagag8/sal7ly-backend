@@ -37,7 +37,7 @@ class TruncateExceptUsers extends Command
         $except = [
             'users', 
             'cities', 
-            'categories', 
+            'service_categories', 
             'customers', 
             'technicians', 
             'wallets',
