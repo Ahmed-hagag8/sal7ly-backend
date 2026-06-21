@@ -159,7 +159,7 @@ class ServiceRequestController extends Controller
     {
         $customer = $request->user()->customer;
 
-        $serviceRequest = ServiceRequest::with(['category', 'city', 'images'])
+        $serviceRequest = ServiceRequest::with(['category', 'city', 'images', 'job'])
             ->where('customer_id', $customer->id)
             ->findOrFail($id);
 
@@ -183,6 +183,7 @@ class ServiceRequestController extends Controller
                     'url' => asset('storage/' . $img->path),
                     'status' => $img->status,
                 ]),
+                'is_reviewed' => $serviceRequest->job ? \App\Models\Review::where('job_id', $serviceRequest->job->id)->where('type', 'customer_to_technician')->exists() : false,
                 'created_at' => $serviceRequest->created_at,
             ],
         ]);
@@ -364,6 +365,8 @@ class ServiceRequestController extends Controller
                 'final_price' => $job->final_price,
                 'status' => $job->status,
                 'is_paid' => $job->payment !== null,
+                'is_reviewed' => \App\Models\Review::where('job_id', $job->id)
+                    ->where('type', 'customer_to_technician')->exists(),
             ]),
             'meta' => [
                 'current_page' => $jobs->currentPage(),
@@ -416,6 +419,8 @@ class ServiceRequestController extends Controller
                     'paid_at' => $job->payment->paid_at,
                 ] : null,
                 'has_reviewed' => \App\Models\Review::where('job_id', $job->id)
+                    ->where('type', 'customer_to_technician')->exists(),
+                'is_reviewed' => \App\Models\Review::where('job_id', $job->id)
                     ->where('type', 'customer_to_technician')->exists(),
                 'created_at' => $job->created_at,
             ],

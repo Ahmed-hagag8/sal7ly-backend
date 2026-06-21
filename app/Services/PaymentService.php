@@ -47,6 +47,18 @@ class PaymentService
                 'paid_at' => now(),
             ]);
 
+            // Deduct from customer wallet if payment method is wallet
+            if ($paymentMethod === 'wallet') {
+                $customerWallet = $job->customer->user->wallet;
+                $this->walletService->debit(
+                    $customerWallet,
+                    $amount,
+                    "Payment for Job #{$job->job_number}",
+                    'payment',
+                    $payment->id
+                );
+            }
+
             // Credit technician wallet
             $technician = $job->technician;
             $this->walletService->credit(
