@@ -32,6 +32,8 @@ mkdir -p /var/www/html/storage/app/technician_documents
 chown -R www-data:www-data /var/www/html/storage/app
 
 # Create storage symlink for file serving
+# Remove any existing symlink (especially broken Windows symlinks committed to git)
+rm -rf /var/www/html/public/storage
 php artisan storage:link || true
 
 echo "Starting Apache web server on port 80..."
