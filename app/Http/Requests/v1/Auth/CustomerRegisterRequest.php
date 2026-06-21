@@ -15,7 +15,7 @@ class CustomerRegisterRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255',
-            'phone' => 'required|string|unique:users,phone|regex:/^01[0125][0-9]{8}$/',
+            'phone' => 'required|string|unique:users,phone|unique:blacklisted_phones,phone|regex:/^01[0125][0-9]{8}$/',
             'email' => 'nullable|email|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
             'city_id' => 'required|exists:cities,id',
@@ -29,7 +29,7 @@ class CustomerRegisterRequest extends FormRequest
     {
         return [
             'phone.regex' => 'Phone must be a valid Egyptian number (e.g., 01xxxxxxxxx)',
-            'phone.unique' => 'This phone number is already registered',
+            'phone.unique' => 'This phone number is already registered or has been blocked from registering.',
             'city_id.exists' => 'Selected city is invalid',
         ];
     }

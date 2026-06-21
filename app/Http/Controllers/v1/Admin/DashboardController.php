@@ -644,7 +644,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * Block user (soft delete + deactivate + revoke tokens)
+     * Block user (hard delete + deactivate + revoke tokens + blacklist phone)
      * POST /admin/users/{id}/block
      */
     public function blockUser($id)
@@ -670,14 +670,21 @@ class DashboardController extends Controller
         // Revoke all tokens
         $user->tokens()->delete();
 
-        // Deactivate and soft delete
+        // Deactivate and hard delete
         $user->is_active = false;
         $user->save();
-        $user->delete(); // soft delete
+
+        // Add to blacklist before deleting
+        \App\Models\BlacklistedPhone::firstOrCreate(
+            ['phone' => $user->phone],
+            ['reason' => 'Blocked from admin dashboard']
+        );
+
+        $user->forceDelete(); // hard delete
 
         return response()->json([
             'success' => true,
-            'message' => 'User blocked successfully',
+            'message' => 'User deleted and blacklisted successfully',
             'data' => [
                 'id' => $user->id,
                 'name' => $user->name,
