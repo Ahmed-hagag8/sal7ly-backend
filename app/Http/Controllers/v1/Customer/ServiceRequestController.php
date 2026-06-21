@@ -402,9 +402,7 @@ class ServiceRequestController extends Controller
                     'name' => $job->technician->user->name,
                     'phone' => $job->technician->user->phone,
                     'rating' => $job->technician->average_rating,
-                    'profile_image' => $job->technician->user->profile_image
-                        ? asset('storage/' . $job->technician->user->profile_image)
-                        : null,
+                    'profile_image' => $job->technician->user->profile_image_url,
                 ],
                 'agreed_price' => $job->agreed_price,
                 'final_price' => $job->final_price,

@@ -36,9 +36,7 @@ class ProfileController extends Controller
             'email' => $user->email,
             'phone' => $user->phone,
             'role' => $user->role,
-            'profile_image' => $user->profile_image
-                ? asset('storage/' . $user->profile_image)
-                : null,
+            'profile_image' => $user->profile_image_url,
             'is_active' => $user->is_active,
             'created_at' => $user->created_at,
         ];

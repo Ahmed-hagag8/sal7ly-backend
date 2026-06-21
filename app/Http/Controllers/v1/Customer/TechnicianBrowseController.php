@@ -109,9 +109,7 @@ class TechnicianBrowseController extends Controller
             'data' => collect($technicians->items())->map(fn($tech) => [
                 'id' => $tech->id,
                 'name' => $tech->user->name,
-                'profile_image' => $tech->user->profile_image
-                    ? asset('storage/' . $tech->user->profile_image)
-                    : null,
+                'profile_image' => $tech->user->profile_image_url,
                 'category' => $tech->category->name ?? null,
                 'category_ar' => $tech->category->name_ar ?? null,
                 'city' => $tech->city->name ?? null,
@@ -170,9 +168,7 @@ class TechnicianBrowseController extends Controller
                 'id' => $technician->id,
                 'name' => $technician->user->name,
                 'phone' => $technician->user->phone,
-                'profile_image' => $technician->user->profile_image
-                    ? asset('storage/' . $technician->user->profile_image)
-                    : null,
+                'profile_image' => $technician->user->profile_image_url,
                 'category' => $technician->category->name ?? null,
                 'category_ar' => $technician->category->name_ar ?? null,
                 'city' => $technician->city->name ?? null,
@@ -279,9 +275,7 @@ class TechnicianBrowseController extends Controller
                 return [
                     'id' => $tech->id,
                     'name' => $tech->user->name,
-                    'profile_image' => $tech->user->profile_image
-                        ? asset('storage/' . $tech->user->profile_image)
-                        : null,
+                    'profile_image' => $tech->user->profile_image_url,
                     'category' => $tech->category->name ?? null,
                     'category_ar' => $tech->category->name_ar ?? null,
                     'city' => $tech->city->name ?? null,

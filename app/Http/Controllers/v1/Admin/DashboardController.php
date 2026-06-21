@@ -543,9 +543,7 @@ class DashboardController extends Controller
             'phone' => $user->phone,
             'role' => $user->role,
             'is_active' => $user->is_active,
-            'profile_image' => $user->profile_image
-                ? asset('storage/' . $user->profile_image)
-                : null,
+            'profile_image' => $user->profile_image_url,
             'email_verified_at' => $user->email_verified_at,
             'phone_verified_at' => $user->phone_verified_at,
             'created_at' => $user->created_at,
